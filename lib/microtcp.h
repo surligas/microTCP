@@ -21,7 +21,8 @@
 typedef enum {
 	LISTEN,
 	ESTABLISHED,
-	CLOSING,
+	CLOSING_BY_PEER,
+	CLOSING_BY_HOST,
 	CLOSED,
 	INVALID
 } mircotcp_state_t;
@@ -67,6 +68,10 @@ microtcp_bind(microtcp_sock_t socket, const struct sockaddr *address,
 
 int
 microtcp_connect(microtcp_sock_t socket, const struct sockaddr *address,
+                 socklen_t address_len);
+
+microtcp_sock_t
+microtcp_accept(microtcp_sock_t socket, struct sockaddr *address,
                  socklen_t address_len);
 
 int

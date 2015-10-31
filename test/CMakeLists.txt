@@ -1,3 +1,5 @@
 add_executable(bandwidth_test bandwidth_test.c)
+add_executable(test_microtcp_server test_microtcp_server.c)
+add_executable(test_microtcp_client test_microtcp_client.c)
 
 install(TARGETS bandwidth_test DESTINATION bin)

@@ -28,6 +28,13 @@ microtcp_connect(microtcp_sock_t socket, const struct sockaddr *address,
 	/* Your code here */
 }
 
+microtcp_sock_t
+microtcp_accept(microtcp_sock_t socket, struct sockaddr *address,
+                 socklen_t address_len)
+{
+	/* Your code here */
+}
+
 int
 microtcp_shutdown(microtcp_sock_t socket, int how)
 {
