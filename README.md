@@ -11,3 +11,15 @@ cd build
 cmake ..
 
 make
+
+## Run Directly in Docker
+
+```bash
+./rund $TestToRun
+```
+
+Example:
+
+```bash
+./rund test_microtcp_server
+```
