@@ -1,0 +1,3 @@
+#!/bin/bash
+
+docker run -e "RUNBIN=$1" --net="bridge" $(docker build . | grep Successfully | cut -d" " -f3)
