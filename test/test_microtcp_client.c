@@ -10,3 +10,9 @@
  * You can use this file to write a test microTCP client.
  * This file is already inserted at the build system.
  */
+
+int
+main(int argc, char **argv)
+{
+
+}
