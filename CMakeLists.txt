@@ -18,4 +18,4 @@ set(MICROTCP_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/utils CACHE INTERNAL "" FO
 
 add_subdirectory(lib)
 add_subdirectory(test)
-add_subdirectory(utils) 
+#add_subdirectory(utils) 
