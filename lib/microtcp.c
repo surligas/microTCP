@@ -60,3 +60,15 @@ microtcp_shutdown(microtcp_sock_t socket, int how)
 {
 	/* Your code here */
 }
+
+ssize_t
+microtcp_send(microtcp_sock_t *socket, const void *buffer, size_t length, int flags)
+{
+	/* Your code here */
+}
+
+ssize_t
+microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length, int flags)
+{
+	/* Your code here */
+}

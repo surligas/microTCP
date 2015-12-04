@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 project (microtcp)
 
 set (microtcp_version_major 1)
-set (microtcp_version_minor 0.0)
+set (microtcp_version_minor 1.0)
 
 
 # uninstall target
