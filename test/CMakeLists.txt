@@ -21,11 +21,13 @@
 include_directories(${MICROTCP_INCLUDE_DIRS})
 
 add_executable(bandwidth_test bandwidth_test.c)
+add_executable(traffic_generator traffic_generator.cpp)
 add_executable(test_microtcp_server test_microtcp_server.c)
 add_executable(test_microtcp_client test_microtcp_client.c)
 
 target_link_libraries(bandwidth_test microtcp)
 target_link_libraries(test_microtcp_server microtcp)
 target_link_libraries(test_microtcp_client microtcp)
+target_link_libraries(traffic_generator microtcp)
 
 install(TARGETS bandwidth_test DESTINATION bin)

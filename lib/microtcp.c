@@ -34,21 +34,21 @@ microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
   /* Your code here */
 }
 
-microtcp_sock_t
+int
 microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                   socklen_t address_len)
 {
   /* Your code here */
 }
 
-microtcp_sock_t
+int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
   /* Your code here */
 }
 
-microtcp_sock_t
+int
 microtcp_shutdown (microtcp_sock_t *socket, int how)
 {
   /* Your code here */

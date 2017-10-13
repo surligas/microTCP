@@ -19,10 +19,19 @@
 #
 
 cmake_minimum_required (VERSION 2.6)
-project (microtcp)
+project (microtcp C CXX)
+
+# Enable C++11 support
+set (CMAKE_CXX_STANDARD 11)
+
+
+# Enable all warnings during compilation, hoping that this will be 
+# helpful for the students :)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra")
 
 set (microtcp_version_major 1)
-set (microtcp_version_minor 1.0)
+set (microtcp_version_minor 2.0)
 
 
 # uninstall target
