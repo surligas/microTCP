@@ -29,8 +29,10 @@
 #include <chrono>
 #include <thread>
 
+extern "C" {
 #include "../lib/microtcp.h"
 #include "../utils/log.h"
+}
 
 #define BUF_LEN 2048
 
