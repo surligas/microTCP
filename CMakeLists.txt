@@ -22,8 +22,11 @@ cmake_minimum_required (VERSION 2.6)
 project (microtcp C CXX)
 
 # Enable C++11 support
-set (CMAKE_CXX_STANDARD 11)
-
+if (CMAKE_VERSION VERSION_LESS "3.1")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+else ()
+	set (CMAKE_CXX_STANDARD 11)
+endif()
 
 # Enable all warnings during compilation, hoping that this will be 
 # helpful for the students :)
