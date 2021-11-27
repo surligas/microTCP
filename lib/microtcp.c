@@ -18,6 +18,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <netinet/in.h>
 #include "microtcp.h"
 #include "../utils/crc32.h"
 
@@ -31,7 +35,16 @@ int
 microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
                socklen_t address_len)
 {
-  /* Your code here */
+	struct sockaddr_in sin;
+	memset(&sin,0,sizeof(struct sockaddr_in));
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons(5100);
+	sin.sin_addr.s_addr = htonl( INADDR_ANY);
+	
+	if(bind(socket->sd,(struct sockaddr *)&sin,sizeof(struct sockaddr_in))==-1){
+		perror("TCP bind\n");
+		exit(EXIT_FAILURE);
+	}
 }
 
 int
