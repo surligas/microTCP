@@ -1,0 +1,12 @@
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/CMakeFiles/uninstall.dir
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/CMakeFiles/INSTALL.dir
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/CMakeFiles/ZERO_CHECK.dir
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/lib/CMakeFiles/microtcp.dir
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/lib/CMakeFiles/INSTALL.dir
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/test/CMakeFiles/bandwidth_test.dir
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/test/CMakeFiles/traffic_generator_client.dir
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/test/CMakeFiles/traffic_generator.dir
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/test/CMakeFiles/test_microtcp_server.dir
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/test/CMakeFiles/test_microtcp_client.dir
+C:/Users/MANOS KARYDIS/Desktop/microTCP/build/test/CMakeFiles/INSTALL.dir
