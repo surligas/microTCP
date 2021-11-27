@@ -29,17 +29,15 @@ microtcp_sock_t
 microtcp_socket (int domain, int type, int protocol)
 {
 
- microtcp_sock_t s1;
+ 	microtcp_sock_t s1;
+	//s1.sd = socket(domain, SOCK_DGRAM, IPPROTO_UDP);
 
-
-	if ( ( s1 = socket( AF_INET , SOCK_STREAM, IPPROTO_TCP ) ) == -1){
+	if ( ( s1.sd = socket( AF_INET , SOCK_STREAM, IPPROTO_TCP ) ) == -1){
 		perror("opening TCP listening socket");
 		exit(EXIT_FAILURE);
 	}
 
-	microtcp_state_t state; //**< The state of the microTCP socket */
-
-
+	s1.state = UKNOWN;
 
   /* Your code here */
 }
