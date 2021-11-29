@@ -81,7 +81,6 @@ int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
-	int sock_accept=accept(socket->sd,address,&address_len);
 	int sock_accept;
 	if(sock_accept=accept(socket->sd,address,&address_len)==-1){
 		perror("TCP Accept\n");
@@ -105,12 +104,19 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
         ssize_t bytes_returned;
         if(bytes_returned=send(socket->sd,buffer,length,flags)==-1){
                 perror("TCP send:\n");
+                return -1;
         }
-        return buytes_returned;
+        return bytes_returned;
 }
 
 ssize_t
 microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
 	
+        ssize_t bytes_returned;
+        if(bytes_returned=recv(socket->sd,buffer,length,flags)==-1){
+                perror("TCP receive\n");
+                return -1;
+        }
+        return bytes_returned;
 }
