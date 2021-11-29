@@ -81,7 +81,11 @@ int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
-	int sock_accept=accept(socket->sd,address,&address_len);
+	int sock_accept;
+	if(sock_accept=accept(socket->sd,address,&address_len)==-1){
+		perror("TCP Accept\n");
+		exit(EXIT_FAILURE);
+	}
 	socket->state=ESTABLISHED;
 	socket->ack_number=0;		
 }
