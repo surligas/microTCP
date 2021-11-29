@@ -25,6 +25,8 @@
 #include "microtcp.h"
 #include "../utils/crc32.h"
 
+#define listening_port 8080
+
 microtcp_sock_t
 microtcp_socket (int domain, int type, int protocol)
 {
@@ -49,13 +51,16 @@ microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
 	struct sockaddr_in sin;
 	memset(&sin,0,sizeof(struct sockaddr_in));
 	sin.sin_family = AF_INET;
-	sin.sin_port = htons(5100);
+	sin.sin_port = htons(listening_port);
 	sin.sin_addr.s_addr = htonl( INADDR_ANY);
 	
 	if(bind(socket->sd,(struct sockaddr *)&sin,sizeof(struct sockaddr_in))==-1){
 		perror("TCP bind\n");
 		exit(EXIT_FAILURE);
 	}
+	
+	
+	
 }
 
 int
