@@ -35,7 +35,7 @@ microtcp_socket (int domain, int type, int protocol)
 	//s1.sd = socket(domain, SOCK_DGRAM, IPPROTO_UDP);
 
 	if ( ( s1.sd = socket( AF_INET , SOCK_STREAM, IPPROTO_TCP ) ) == -1){
-		perror("opening TCP listening socket");
+		perror("opening TCP listening socket\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -54,20 +54,27 @@ microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
 	sin.sin_port = htons(listening_port);
 	sin.sin_addr.s_addr = htonl( INADDR_ANY);
 	
-	if(bind(socket->sd,(struct sockaddr *)&sin,sizeof(struct sockaddr_in))==-1){
+	if(bind(socket->sd,(struct sockaddr *)&sin,sizeof(address_len))==-1){
 		perror("TCP bind\n");
 		exit(EXIT_FAILURE);
 	}
-	
-	
-	
+    if(listen(socket->sd,1)==-1){
+            perror("TCP listen\n");
+            exit(EXIT_FAILURE);
+    }
 }
 
 int
 microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                   socklen_t address_len)
 {
-  /* Your code here */
+       if(connect(socket->sd,address,sizeof(address_len))<0){
+               perror("TCP Connect\n");
+               exit(EXIT_FAILURE);
+       }
+       socket->state=ESTABLISHED;
+       socket->seq_number=rand();
+       return 1;
 }
 
 int
