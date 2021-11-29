@@ -102,7 +102,11 @@ ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
                int flags)
 {
-
+        ssize_t bytes_returned;
+        if(bytes_returned=send(socket->sd,buffer,length,flags)==-1){
+                perror("TCP send:\n");
+        }
+        return buytes_returned;
 }
 
 ssize_t
