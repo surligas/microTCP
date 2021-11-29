@@ -24,8 +24,9 @@
 #include <netinet/in.h>
 #include "microtcp.h"
 #include "../utils/crc32.h"
+#include <unistd.h>
 
-#define listening_port 8080
+#define listening_port 8081
 
 microtcp_sock_t
 microtcp_socket (int domain, int type, int protocol)
@@ -34,12 +35,13 @@ microtcp_socket (int domain, int type, int protocol)
  	microtcp_sock_t s1;
 	//s1.sd = socket(domain, SOCK_DGRAM, IPPROTO_UDP);
 
-	if ( ( s1.sd = socket( AF_INET , SOCK_DGRAM, IPPROTO_TCP ) ) == -1){
+	if ( ( s1.sd = socket(domain,type,protocol) ) == -1){
 		perror("opening TCP listening socket\n");
 		exit(EXIT_FAILURE);
 	}
 
 	s1.state = UKNOWN;
+	return s1;
 
   /* Your code here */
 }
@@ -49,16 +51,21 @@ microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
                socklen_t address_len)
 {
 	struct sockaddr_in* sin=(struct sockaddr_in*)address;
-	memset(&sin,0,sizeof(struct sockaddr_in));
+	printf("PrOgRaS\n");
+	//memset(&sin,0,sizeof(struct sockaddr_in));
+	 printf("PrOgRaS\n");
+	sin=(struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 	sin->sin_family = AF_INET;
 	sin->sin_port = htons(listening_port);
 	sin->sin_addr.s_addr = htonl( INADDR_ANY);
+	 printf("PrOgRaS\n");
+
 	
-	if(bind(socket->sd,(struct sockaddr*)sin,sizeof(address_len))==-1){
+	if(bind(socket->sd,(struct sockaddr*)sin,address_len)==-1){
 		perror("TCP bind\n");
 		exit(EXIT_FAILURE);
 	}
-    	if(listen(socket->sd,1)==-1){
+    	if(listen(socket->sd,0)==-1){
     	        perror("TCP listen\n");
     	        exit(EXIT_FAILURE);
     	}
@@ -68,7 +75,7 @@ int
 microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                   socklen_t address_len)
 {
-       if(connect(socket->sd,address,sizeof(address_len))<0){
+       if(connect(socket->sd,address,address_len)<0){
                perror("TCP Connect\n");
                return -1;
        }
@@ -81,7 +88,6 @@ int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
-	int sock_accept=accept(socket->sd,address,&address_len);
 	int sock_accept;
 	if(sock_accept=accept(socket->sd,address,&address_len)==-1){
 		perror("TCP Accept\n");
@@ -109,4 +115,32 @@ ssize_t
 microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
 	
+}
+
+
+int main(){
+	int pid;
+
+	/* Creating sockets of server and client */
+	microtcp_sock_t server=microtcp_socket( AF_INET , SOCK_STREAM, IPPROTO_TCP);
+	microtcp_sock_t client=microtcp_socket( AF_INET , SOCK_STREAM, IPPROTO_TCP);
+	
+	/* binding server socket */
+	struct sockaddr server_address;
+	socklen_t server_address_len=sizeof(struct sockaddr);
+	struct sockaddr client_address;
+        socklen_t client_address_len=sizeof(struct sockaddr);
+
+	microtcp_bind(&server,&server_address,server_address_len);
+	if(pid=fork()){
+		printf("GIWRGHS\n");
+		microtcp_accept(&server,&server_address,server_address_len);
+		sleep(2);	
+	}else{
+		printf("O TSAKALOS\n");
+		//microtcp_connect(&client,&client_address,client_address_len);
+		microtcp_connect(&server,&server_address,server_address_len);
+		exit(0);
+	}
+	return 0;
 }
