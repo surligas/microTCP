@@ -39,7 +39,7 @@ microtcp_socket (int domain, int type, int protocol)
 		exit(EXIT_FAILURE);
 	}
 
-	s1.state = UKNOWN;
+	s1.state = UNKNOWN;
 
   /* Your code here */
 }
