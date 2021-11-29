@@ -25,7 +25,7 @@
 #include "microtcp.h"
 #include "../utils/crc32.h"
 
-
+#define listening_port 8080
 
 microtcp_sock_t
 microtcp_socket (int domain, int type, int protocol)
@@ -34,8 +34,8 @@ microtcp_socket (int domain, int type, int protocol)
  	microtcp_sock_t s1;
 	//s1.sd = socket(domain, SOCK_DGRAM, IPPROTO_UDP);
 
-	if ( ( s1.sd = socket( AF_INET , SOCK_STREAM, IPPROTO_TCP ) ) == -1){
-		perror("opening TCP listening socket");
+	if ( ( s1.sd = socket( AF_INET , SOCK_DGRAM, IPPROTO_TCP ) ) == -1){
+		perror("opening TCP listening socket\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -48,30 +48,48 @@ int
 microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
                socklen_t address_len)
 {
-	struct sockaddr_in sin;
+	struct sockaddr_in* sin=(struct sockaddr_in*)address;
 	memset(&sin,0,sizeof(struct sockaddr_in));
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons(5100);
-	sin.sin_addr.s_addr = htonl( INADDR_ANY);
+	sin->sin_family = AF_INET;
+	sin->sin_port = htons(listening_port);
+	sin->sin_addr.s_addr = htonl( INADDR_ANY);
 
-	if(bind(socket->sd,(struct sockaddr *)&sin,sizeof(struct sockaddr_in))==-1){
+	if(bind(socket->sd,(struct sockaddr*)sin,sizeof(address_len))==-1){
 		perror("TCP bind\n");
 		exit(EXIT_FAILURE);
 	}
+    	if(listen(socket->sd,1)==-1){
+    	        perror("TCP listen\n");
+    	        exit(EXIT_FAILURE);
+    	}
 }
 
 int
 microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                   socklen_t address_len)
 {
-  /* Your code here */
+       if(connect(socket->sd,address,sizeof(address_len))<0){
+               perror("TCP Connect\n");
+               return -1;
+       }
+       socket->state=ESTABLISHED;
+       socket->seq_number=rand();
+       return 1;
 }
 
 int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
-  /* Your code here */
+	int sock_accept=accept(socket->sd,address,&address_len);
+	int sock_accept;
+	if(sock_accept=accept(socket->sd,address,&address_len)==-1){
+		perror("TCP Accept\n");
+		return -1;
+	}
+	socket->state=ESTABLISHED;
+	socket->ack_number=0;
+	return 0;
 }
 
 int
@@ -108,11 +126,15 @@ ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
                int flags)
 {
-  /* Your code here */
+        ssize_t bytes_returned;
+        if(bytes_returned=send(socket->sd,buffer,length,flags)==-1){
+                perror("TCP send:\n");
+        }
+        return buytes_returned;
 }
 
 ssize_t
 microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
-  /* Your code here */
+
 }
