@@ -34,7 +34,7 @@ microtcp_socket (int domain, int type, int protocol)
  	microtcp_sock_t s1;
 	//s1.sd = socket(domain, SOCK_DGRAM, IPPROTO_UDP);
 
-	if ( ( s1.sd = socket( AF_INET , SOCK_STREAM, IPPROTO_TCP ) ) == -1){
+	if ( ( s1.sd = socket( AF_INET , SOCK_DGRAM, IPPROTO_TCP ) ) == -1){
 		perror("opening TCP listening socket\n");
 		exit(EXIT_FAILURE);
 	}
@@ -81,7 +81,7 @@ int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
-	int sock_accept=accept(socket->sd,address,address_len);
+	int sock_accept=accept(socket->sd,address,&address_len);
 	socket->state=ESTABLISHED;
 	socket->ack_number=0;		
 }
@@ -96,7 +96,7 @@ ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
                int flags)
 {
-  /* Your code here */
+
 }
 
 ssize_t
