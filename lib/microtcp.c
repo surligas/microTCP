@@ -25,6 +25,8 @@
 #include "microtcp.h"
 #include "../utils/crc32.h"
 
+
+
 microtcp_sock_t
 microtcp_socket (int domain, int type, int protocol)
 {
@@ -51,7 +53,7 @@ microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(5100);
 	sin.sin_addr.s_addr = htonl( INADDR_ANY);
-	
+
 	if(bind(socket->sd,(struct sockaddr *)&sin,sizeof(struct sockaddr_in))==-1){
 		perror("TCP bind\n");
 		exit(EXIT_FAILURE);
@@ -75,6 +77,30 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 int
 microtcp_shutdown (microtcp_sock_t *socket, int how)
 {
+
+ //*** client sends FIN pocket ***//
+ //*** server receivs FIN - sends ACK - state = CLOSING_BY_PEER ***//
+ //*** client receivs ACK - state = CLOSING_BY_HOST ***//
+ //*** server sends FIN pocket ***//
+ //*** client receivs FIN pocket - sends ACK pocket - state = CLOSED ***//
+ //*** server receivs ACK pocket - state = CLOSED ***//
+
+ microtcp_sock_t s2;
+
+
+ if(how == 0){
+	 s2.state = CLOSING_BY_PEER;
+ }
+ else if(how == 1){
+	s2.state = CLOSING_BY_HOST;
+ }
+
+ free(socket);
+ s2.state = CLOSED;
+
+
+
+
   /* Your code here */
 }
 
