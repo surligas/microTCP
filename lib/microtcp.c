@@ -35,7 +35,7 @@ microtcp_socket (int domain, int type, int protocol)
  	microtcp_sock_t s1;
 	//s1.sd = socket(domain, SOCK_DGRAM, IPPROTO_UDP);
 
-	if ( ( s1.sd = socket(domain,type,protocol) ) == -1){
+	if ( ( s1.sd = socket(domain ,type,protocol ) ) == -1){
 		perror("opening TCP listening socket\n");
 		exit(EXIT_FAILURE);
 	}
@@ -51,37 +51,23 @@ microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
                socklen_t address_len)
 {
 	struct sockaddr_in* sin=(struct sockaddr_in*)address;
-	printf("PrOgRaS\n");
-	//memset(&sin,0,sizeof(struct sockaddr_in));
-	 printf("PrOgRaS\n");
 	sin=(struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 	sin->sin_family = AF_INET;
 	sin->sin_port = htons(listening_port);
 	sin->sin_addr.s_addr = htonl( INADDR_ANY);
-	 printf("PrOgRaS\n");
-
-	
 	if(bind(socket->sd,(struct sockaddr*)sin,address_len)==-1){
 		perror("TCP bind\n");
 		exit(EXIT_FAILURE);
 	}
-    	if(listen(socket->sd,0)==-1){
-    	        perror("TCP listen\n");
-    	        exit(EXIT_FAILURE);
-    	}
 }
 
 int
 microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                   socklen_t address_len)
 {
-       if(connect(socket->sd,address,address_len)<0){
-               perror("TCP Connect\n");
-               return -1;
-       }
-       socket->state=ESTABLISHED;
-       socket->seq_number=rand();
-       return 1;
+       	socket->state=ESTABLISHED;
+       	socket->seq_number=rand();
+       	return 1;
 }
 
 int
@@ -89,18 +75,38 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
 	int sock_accept;
-	if(sock_accept=accept(socket->sd,address,&address_len)==-1){
-		perror("TCP Accept\n");
-		return -1;
-	}
 	socket->state=ESTABLISHED;
-	socket->ack_number=0;		
+	socket->ack_number=0;
 	return 0;
 }
 
 int
 microtcp_shutdown (microtcp_sock_t *socket, int how)
 {
+
+ //*** client sends FIN pocket ***//
+ //*** server receivs FIN - sends ACK - state = CLOSING_BY_PEER ***//
+ //*** client receivs ACK - state = CLOSING_BY_HOST ***//
+ //*** server sends FIN pocket ***//
+ //*** client receivs FIN pocket - sends ACK pocket - state = CLOSED ***//
+ //*** server receivs ACK pocket - state = CLOSED ***//
+
+ microtcp_sock_t s2;
+
+
+ if(how == 0){
+	 s2.state = CLOSING_BY_PEER;
+ }
+ else if(how == 1){
+	s2.state = CLOSING_BY_HOST;
+ }
+
+ free(socket);
+ s2.state = CLOSED;
+
+
+
+
   /* Your code here */
 }
 
@@ -108,13 +114,24 @@ ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
                int flags)
 {
-
+        ssize_t bytes_returned;
+        if(bytes_returned=send(socket->sd,buffer,length,flags)==-1){
+                perror("TCP send:\n");
+                return -1;
+        }
+        return bytes_returned;
 }
 
 ssize_t
 microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
 	
+        ssize_t bytes_returned;
+        if(bytes_returned=recv(socket->sd,buffer,length,flags)==-1){
+                perror("TCP receive\n");
+                return -1;
+        }
+        return bytes_returned;
 }
 
 
@@ -134,13 +151,17 @@ int main(){
 	microtcp_bind(&server,&server_address,server_address_len);
 	if(pid=fork()){
 		printf("GIWRGHS\n");
+		sleep(2);
 		microtcp_accept(&server,&server_address,server_address_len);
-		sleep(2);	
+		close(server.sd);
 	}else{
 		printf("O TSAKALOS\n");
-		//microtcp_connect(&client,&client_address,client_address_len);
-		microtcp_connect(&server,&server_address,server_address_len);
+		microtcp_connect(&client,&client_address,client_address_len);
+		//microtcp_connect(&server,&server_address,server_address_len);
+		sleep(2);
+		close(client.sd);
 		exit(0);
 	}
+	printf("geia\n");
 	return 0;
 }
