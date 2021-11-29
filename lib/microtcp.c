@@ -74,7 +74,9 @@ int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
-  /* Your code here */
+	int sock_accept=accept(socket->sd,address,address_len);
+	socket->state=ESTABLISHED;
+	socket->ack_number=0;		
 }
 
 int
