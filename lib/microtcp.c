@@ -48,20 +48,20 @@ int
 microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
                socklen_t address_len)
 {
-	struct sockaddr_in sin;
+	struct sockaddr_in* sin=(struct sockaddr_in*)address;
 	memset(&sin,0,sizeof(struct sockaddr_in));
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons(listening_port);
-	sin.sin_addr.s_addr = htonl( INADDR_ANY);
+	sin->sin_family = AF_INET;
+	sin->sin_port = htons(listening_port);
+	sin->sin_addr.s_addr = htonl( INADDR_ANY);
 	
-	if(bind(socket->sd,(struct sockaddr *)&sin,sizeof(address_len))==-1){
+	if(bind(socket->sd,(struct sockaddr*)sin,sizeof(address_len))==-1){
 		perror("TCP bind\n");
 		exit(EXIT_FAILURE);
 	}
-    if(listen(socket->sd,1)==-1){
-            perror("TCP listen\n");
-            exit(EXIT_FAILURE);
-    }
+    	if(listen(socket->sd,1)==-1){
+    	        perror("TCP listen\n");
+    	        exit(EXIT_FAILURE);
+    	}
 }
 
 int
@@ -70,7 +70,7 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
 {
        if(connect(socket->sd,address,sizeof(address_len))<0){
                perror("TCP Connect\n");
-               exit(EXIT_FAILURE);
+               return -1;
        }
        socket->state=ESTABLISHED;
        socket->seq_number=rand();
@@ -82,8 +82,14 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
 	int sock_accept=accept(socket->sd,address,&address_len);
+	int sock_accept;
+	if(sock_accept=accept(socket->sd,address,&address_len)==-1){
+		perror("TCP Accept\n");
+		return -1;
+	}
 	socket->state=ESTABLISHED;
 	socket->ack_number=0;		
+	return 0;
 }
 
 int
@@ -102,5 +108,5 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
 ssize_t
 microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
-  /* Your code here */
+	
 }
