@@ -70,7 +70,18 @@ int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
+	microtcp_header_t header;
+	int flags=0;
+	int rec;
+	socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t));
+	if(rec=recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,flags,address,&address_len)==-1){
+		perror("TCP Accept first receival\n");
+		socket->state=INVALID;
+		return -1;
+	}
 	
+	
+
 	return 0;
 }
 
@@ -108,24 +119,13 @@ ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
                int flags)
 {
-        ssize_t bytes_returned;
-        if(bytes_returned=send(socket->sd,buffer,length,flags)==-1){
-                perror("TCP send:\n");
-                return -1;
-        }
-        return bytes_returned;
+
 }
 
 ssize_t
 microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
 	
-        ssize_t bytes_returned;
-        if(bytes_returned=recv(socket->sd,buffer,length,flags)==-1){
-                perror("TCP receive\n");
-                return -1;
-        }
-        return bytes_returned;
 }
 
 
