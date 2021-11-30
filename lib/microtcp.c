@@ -31,17 +31,22 @@ microtcp_socket (int domain, int type, int protocol)
 {
 
  	microtcp_sock_t s1;
-	//s1.sd = socket(domain, SOCK_DGRAM, IPPROTO_UDP);
+
 
 	if ( ( s1.sd = socket(domain ,type,protocol ) ) == -1){
 		perror("opening TCP listening socket\n");
-		exit(EXIT_FAILURE);
+		s1.state = INVALID;
+		return s1;
 	}
 
-	s1.state = UKNOWN;
+	s1.state = UNKNOWN;
+	s1.init_win_size = MICROTCP_WIN_SIZE;
+	s1.curr_win_size = MICROTCP_WIN_SIZE;
+	s1.ssthresh = MICROTCP_INIT_SSTHRESH;
+	s1.cwnd = MICROTCP_INIT_CWND;
+
 	return s1;
 
-  /* Your code here */
 }
 
 int
