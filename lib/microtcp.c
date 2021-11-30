@@ -31,10 +31,7 @@ microtcp_socket (int domain, int type, int protocol)
 {
 
  	microtcp_sock_t s1;
-<<<<<<< HEAD
- 
-=======
->>>>>>> 6f7a1b33c00d967bb5360356b6f9c5fddb35a115
+
 	if ( ( s1.sd = socket(domain ,type,protocol ) ) == -1){
 		perror("opening TCP listening socket\n");
 		s1.state = INVALID;
