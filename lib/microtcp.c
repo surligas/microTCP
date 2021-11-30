@@ -48,18 +48,21 @@ int
 microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
                socklen_t address_len)
 {
-	if(bind(socket->sd,(struct sockaddr*)sin,address_len)==-1){
+	int b;
+	if(b=bind(socket->sd,address,address_len)==-1){
 		perror("TCP bind\n");
-		exit(EXIT_FAILURE);
+		socket->state=INVALID;
+	}else{
+		socket->state=LISTEN;
 	}
+	return b;
 }
 
 int
 microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                   socklen_t address_len)
 {
-       	socket->state=ESTABLISHED;
-       	socket->seq_number=rand();
+	
        	return 1;
 }
 
@@ -67,9 +70,7 @@ int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
-	int sock_accept;
-	socket->state=ESTABLISHED;
-	socket->ack_number=0;
+	
 	return 0;
 }
 
