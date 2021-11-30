@@ -50,11 +50,6 @@ int
 microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
                socklen_t address_len)
 {
-	struct sockaddr_in* sin=(struct sockaddr_in*)address;
-	sin=(struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
-	sin->sin_family = AF_INET;
-	sin->sin_port = htons(listening_port);
-	sin->sin_addr.s_addr = htonl( INADDR_ANY);
 	if(bind(socket->sd,(struct sockaddr*)sin,address_len)==-1){
 		perror("TCP bind\n");
 		exit(EXIT_FAILURE);
@@ -135,33 +130,3 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 }
 
 
-int main(){
-	int pid;
-
-	/* Creating sockets of server and client */
-	microtcp_sock_t server=microtcp_socket( AF_INET , SOCK_STREAM, IPPROTO_TCP);
-	microtcp_sock_t client=microtcp_socket( AF_INET , SOCK_STREAM, IPPROTO_TCP);
-	
-	/* binding server socket */
-	struct sockaddr server_address;
-	socklen_t server_address_len=sizeof(struct sockaddr);
-	struct sockaddr client_address;
-        socklen_t client_address_len=sizeof(struct sockaddr);
-
-	microtcp_bind(&server,&server_address,server_address_len);
-	if(pid=fork()){
-		printf("GIWRGHS\n");
-		sleep(2);
-		microtcp_accept(&server,&server_address,server_address_len);
-		close(server.sd);
-	}else{
-		printf("O TSAKALOS\n");
-		microtcp_connect(&client,&client_address,client_address_len);
-		//microtcp_connect(&server,&server_address,server_address_len);
-		sleep(2);
-		close(client.sd);
-		exit(0);
-	}
-	printf("geia\n");
-	return 0;
-}
