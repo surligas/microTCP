@@ -113,11 +113,11 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 		socket->state=INVALID;
 		return -1;
 	}
-	if(socket->recvbuf[8]=htons((uint8_t)(0*ACK+1*SYN+0*FIN))){
+	if(socket->recvbuf[8]==htons((uint8_t)(0*ACK+1*SYN+0*FIN))){
 		printf("Client did not send SYN for the handshake\n");
 		return -1;
 	}
-	socket->recvbuf[8]=htons(uint8_t)(0*ACK+0*SYN+0*FIN))
+	socket->recvbuf[8]=htons((uint8_t)(0*ACK+0*SYN+0*FIN));
 
 	return 0;
 }
