@@ -31,8 +31,12 @@ microtcp_socket (int domain, int type, int protocol)
 {
 
  	microtcp_sock_t s1;
+	if ( ( s1.sd = socket(domain ,type,protocol ) ) == -1){
+		perror("opening TCP listening socket\n");
+	}
 
-
+	s1.state = UKNOWN;
+	return s1;   
 	if ( ( s1.sd = socket(domain ,type,protocol ) ) == -1){
 		perror("opening TCP listening socket\n");
 		s1.state = INVALID;
@@ -67,6 +71,34 @@ int
 microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                   socklen_t address_len)
 {
+        microtcp_header_t send;
+        microtcp_header_t *receive=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+        
+        
+        //initializing the header (to be sent to client)of microtcp to start the 3-way handshake
+        send.seq_number=htonl(rand());
+        send.ack_number=0;
+        //send.control=
+        send.window=0;
+        send.data_len=0;
+        send.future_use0=0;
+        send.future_use1=0;
+        send.future_use2=0;
+        send.checksum=0;
+
+
+        if(sendto(socket->sd,&send,sizeof(microtcp_header_t),0,address,address_len)==-1){
+                perror("Send first packet of 3-way handshake error:");
+                socket->state=INVALID;
+                return -1;
+        }
+
+        if(recvfrom(socket->sd,receive,sizeof(microtcp_header_t),0,address,&address_len)==-1){
+                perror("Receive from server error:");
+                socket->state=INVALID;
+                return -1;
+        }
+
 	
        	return 1;
 }
@@ -93,6 +125,7 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 }
 
 int
+
 microtcp_shutdown (microtcp_sock_t *socket, int how)
 {
 
