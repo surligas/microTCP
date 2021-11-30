@@ -79,13 +79,15 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 	int flags=0;
 	int rec;
 	socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t));
-	if(rec=recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,flags,address,&address_len)==-1){
+	if(rec=recvfrom(socket->sd,&header,MICROTCP_RECVBUF_LEN,flags,address,&address_len)==-1){
 		perror("TCP Accept first receival\n");
 		socket->state=INVALID;
 		return -1;
 	}
-	
-	
+	if(header->control!=(uint8_t)(0*ACK+1*SYN+0*FIN)){
+		printf("Client did not send SYN for the handshake\n");
+		return -1;
+	}
 
 	return 0;
 }
