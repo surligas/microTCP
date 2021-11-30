@@ -34,6 +34,10 @@
 #define MICROTCP_WIN_SIZE MICROTCP_RECVBUF_LEN
 #define MICROTCP_INIT_CWND (3 * MICROTCP_MSS)
 #define MICROTCP_INIT_SSTHRESH MICROTCP_WIN_SIZE
+#define FIN 1
+#define SYN 2
+#define ACK 4
+
 
 /**
  * Possible states of the microTCP socket
@@ -49,7 +53,7 @@ typedef enum
   CLOSING_BY_HOST,
   CLOSED,
   INVALID,
-  UKNOWN
+  UNKNOWN
 } mircotcp_state_t;
 
 

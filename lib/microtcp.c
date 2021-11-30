@@ -37,18 +37,34 @@ microtcp_socket (int domain, int type, int protocol)
 
 	s1.state = UKNOWN;
 	return s1;   
+	if ( ( s1.sd = socket(domain ,type,protocol ) ) == -1){
+		perror("opening TCP listening socket\n");
+		s1.state = INVALID;
+		return s1;
+	}
 
-  /* Your code here */
+	s1.state = UNKNOWN;
+	s1.init_win_size = MICROTCP_WIN_SIZE;
+	s1.curr_win_size = MICROTCP_WIN_SIZE;
+	s1.ssthresh = MICROTCP_INIT_SSTHRESH;
+	s1.cwnd = MICROTCP_INIT_CWND;
+
+	return s1;
+
 }
 
 int
 microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
                socklen_t address_len)
 {
-	if(bind(socket->sd,(struct sockaddr*)sin,address_len)==-1){
+	int b;
+	if(b=bind(socket->sd,address,address_len)==-1){
 		perror("TCP bind\n");
-		exit(EXIT_FAILURE);
+		socket->state=INVALID;
+	}else{
+		socket->state=LISTEN;
 	}
+	return b;
 }
 
 int
@@ -83,15 +99,26 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                 return -1;
         }
 
+	
+       	return 1;
 }
 
 int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
-	int sock_accept;
-	socket->state=ESTABLISHED;
-	socket->ack_number=0;
+	microtcp_header_t header;
+	int flags=0;
+	int rec;
+	socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t));
+	if(rec=recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,flags,address,&address_len)==-1){
+		perror("TCP Accept first receival\n");
+		socket->state=INVALID;
+		return -1;
+	}
+	
+	
+
 	return 0;
 }
 
@@ -130,24 +157,13 @@ ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
                int flags)
 {
-        ssize_t bytes_returned;
-        if(bytes_returned=send(socket->sd,buffer,length,flags)==-1){
-                perror("TCP send:\n");
-                return -1;
-        }
-        return bytes_returned;
+
 }
 
 ssize_t
 microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
 	
-        ssize_t bytes_returned;
-        if(bytes_returned=recv(socket->sd,buffer,length,flags)==-1){
-                perror("TCP receive\n");
-                return -1;
-        }
-        return bytes_returned;
 }
 
 
