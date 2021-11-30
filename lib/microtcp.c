@@ -26,8 +26,6 @@
 #include "../utils/crc32.h"
 #include <unistd.h>
 
-#define listening_port 8081
-
 microtcp_sock_t
 microtcp_socket (int domain, int type, int protocol)
 {
