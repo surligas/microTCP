@@ -181,7 +181,7 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 	/* if ACK was not received */
 	if(isACKReceived==0) return -1;
 	/* if ACK was received, SUCCESS*/
-	else return 1;
+	else return socket->sd;
 }
 
 int
