@@ -110,20 +110,61 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 {
 
 	microtcp_header_t *recv_header;
-	microtcp_header_t send_header;
-
-	if(socket->state!=LISTEN){
-		perror("Server is not bound yet!\n");
-		return -1;
-	}
+	microtcp_header_t *send_header;
+	
 	
 	recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+	send_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+	
+	/* HERE WE RECEIVE THE SYN SIGNAL FROM THE CLIENT */
+	
+	/*if recvfrom return -1 error */
 	if(recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,&address_len)==-1){
-		perror("Error receiving SYN\n");	
+		perror("Error receiving SYN from client\n");
+		/* send a header back that is a NACK*/	
 		return -1;
 	}
+
 	recv_header=(microtcp_header_t*)socket->recvbuf;
+	/*if control is not SYN error */
+	if(recv_header->control!=htons((uint16_t)(0*ACK + 1*SYN + 0*FIN))){
+		perror("Connection did not start with SYN from client\n");
+		/* send a header back requesting SYN*/
+		return -1;
+	}
 	
+	/* HERE WE SEND THE SYN,ACK SIGNAL BACK TO THE CLIENT */
+
+	send_header=recv_header;
+	send_header->control=htons((uint16_t)(1*ACK + 1*SYN + 0*FIN));
+	send_header->ack_number=send_header->seq_number+1;
+	send_header->seq_number=rand()%999+1;		
+	memcpy(socket->recvbuf,send_header,sizeof(microtcp_header_t));
+	/*if sendto return -1 error*/
+	if(sendto(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,address_len==-1)){
+		perror("Error sending SYN,ACK to client\n");
+		return -1;
+	}
+	
+	/* HERE WE RECEIVE THE ACK SIGNAL FROM THE CLIENT */
+
+	/*if recvfrom return -1 error */
+	if(recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,&address_len)==-1){
+	        perror("Error receiving ACK from client\n");
+                /* send a header back that is a NACK*/
+                return -1;
+        }
+
+	/* reinitialising recv_header*/
+	free(recv_header);
+	recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+	recv_header=(microtcp_header_t*)socket->recvbuf;
+        /*if control is not ACK error */
+        if(recv_header->control!=htons((uint16_t)(1*ACK + 0*SYN + 0*FIN))){
+                perror("Did not receive ACK from client\n");
+                /* send a header back requesting ACK*/
+                return -1;
+        }	
 	return 0;
 }
 
