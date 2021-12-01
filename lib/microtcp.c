@@ -106,7 +106,9 @@ int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
-	microtcp_header_t header;
+	microtcp_header_t send;
+	microtcp_header_t receive;
+
 	struct sockaddr* restrict addr=address;
 	socklen_t* restrict addr_len=&address_len;
 	int flags=0;
@@ -121,7 +123,19 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 		printf("Client did not send SYN for the handshake\n");
 		return -1;
 	}
-	socket->recvbuf[8]=htons((uint8_t)(0*ACK+0*SYN+0*FIN));
+	int r=rand()%999+1;
+	
+	
+
+	receive.seq_number=htonl((uint32_t)r);
+        receive.ack_number=
+        receive.control=htons(1*ACK+0*SYN+0*FIN);
+        receive.window=0;
+        receive.data_len=0;
+        receive.future_use0=0;
+        receive.future_use1=0;
+        receive.future_use2=0;
+        receive.checksum=0;
 
 	return 0;
 }
