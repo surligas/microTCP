@@ -25,6 +25,7 @@
 #include "microtcp.h"
 #include "../utils/crc32.h"
 #include <unistd.h>
+#include <time.h>
 
 microtcp_sock_t
 microtcp_socket (int domain, int type, int protocol)
@@ -186,7 +187,7 @@ int i;
 		  if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
 			socket->state=INVALID;
 			perror("microTCP Shutdown connection error");
-			return socket;
+			return -1;
 		}
 
 
@@ -210,11 +211,11 @@ int i;
 		  if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
 			socket->state=INVALID;
 			perror("microTCP Shutdown connection error - While 3rd packet send");
-			return socket;
+			return -1;
 		}
 
 
-		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,address_len);
+		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
 		if(tmp_recvfrom == -1){
 
 			perror("microTCP shutdown connection fail");
@@ -240,20 +241,20 @@ int i;
 		if(checkSum1!=TMPcheckSum){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error");
-			return socket;
+			return -1;
 		}
 		recv_head_pack->control=ntohs(recv_head_pack->control);
 		if(recv_head_pack->control!=ACK){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error");
-			return socket;
+			return -1;
 		}
 
 		if(ntohl(recv_head_pack->seq_number)!=ntohl(send_head_pack.ack_number) ||
 			ntohl(recv_head_pack->ack_number)!=ntohl(send_head_pack.seq_number)+1){
 				socket->state=INVALID;
 				perror("microTCP shutdown connection error");
-				return socket;
+				return -1;
 			}
 	}
 	else{
@@ -277,11 +278,11 @@ int i;
 		  if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len) <0){
 			socket->state=INVALID;
 			perror("microTCP Shutdown connection error");
-			return socket;
+			return -1;
 		}
 
 
-		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,address_len);
+		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
 		if(tmp_recvfrom == -1){
 
 			perror("microTCP shutdown connection fail (2nd packet recv)");
@@ -306,7 +307,7 @@ int i;
 		if(checkSum1!=TMPcheckSum){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error - 2nd packet - error checksum");
-			return socket;
+			return -1;
 		}
 
 
@@ -314,7 +315,7 @@ int i;
 		if(recv_head_pack->control!=ACK){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error - 2nd packet is not ACK");
-			return socket;
+			return -1;
 		}
 
 		recv_head_pack->ack_number=ntohl(recv_head_pack->ack_number);
@@ -326,14 +327,14 @@ int i;
 				printf("and I got \n");
 				//printf("%" PRIu32 "\n",recv_head_pack->ack_number);
 				socket->state = INVALID;
-				return socket;
+				return -1;
 			}
 
 
 		socket->state = CLOSING_BY_HOST;
 
 
-		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,address_len);
+		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
 		if(tmp_recvfrom == -1){
 
 			perror("microTCP shutdown connection fail (3rd packet recv)");
@@ -358,7 +359,7 @@ int i;
 		if(checkSum1!=TMPcheckSum){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error");
-			return socket;
+			return -1;
 		}
 
 
@@ -366,7 +367,7 @@ int i;
 		if(recv_head_pack->control!=FIN_ACK){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error - 3rd packet is not FIN ACK");
-			return socket;
+			return -1;
 		}
 		recv_head_pack->seq_number=ntohl(recv_head_pack->seq_number);
 		recv_head_pack->ack_number=ntohl(recv_head_pack->ack_number);
@@ -395,20 +396,20 @@ int i;
 	}
 
 
- microtcp_sock_t s2;
+	 microtcp_sock_t s2;
 
 
- if(how == 0){
-	 s2.state = CLOSING_BY_PEER;
- }
- else if(how == 1){
-	s2.state = CLOSING_BY_HOST;
- }
+	 if(how == 0){
+		 s2.state = CLOSING_BY_PEER;
+	 }
+	 else if(how == 1){
+		s2.state = CLOSING_BY_HOST;
+	 }
 
- free(socket);
- s2.state = CLOSED;
+ 	free(socket);
+ 	s2.state = CLOSED;
 
-
+	return 1;
 
 
 
