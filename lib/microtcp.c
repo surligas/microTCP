@@ -111,61 +111,77 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 
 	microtcp_header_t *recv_header;
 	microtcp_header_t *send_header;
-	
+	int isSYNReceived=0;
+	int isSYNACKSent=0;
+	int isACKReceived=0;
 	
 	recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
 	send_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
 	
+	send_header->seq_number=rand()%999+1;
+	send_header->ack_number=0;
+	send_header->control=htons((uint16_t)(0*ACK + 0*SYN + 0*FIN));
+	send_header->window=0;
+	send_header->data_len=0;
+	send_header->future_use0=0;
+	send_header->future_use1=0;
+	send_header->future_use2=0;
+	send_header->checksum=0;
+
 	/* HERE WE RECEIVE THE SYN SIGNAL FROM THE CLIENT */
 	
 	/*if recvfrom return -1 error */
 	if(recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,&address_len)==-1){
-		perror("Error receiving SYN from client\n");
-		/* send a header back that is a NACK*/	
-		return -1;
-	}
-
-	recv_header=(microtcp_header_t*)socket->recvbuf;
-	/*if control is not SYN error */
-	if(recv_header->control!=htons((uint16_t)(0*ACK + 1*SYN + 0*FIN))){
-		perror("Connection did not start with SYN from client\n");
-		/* send a header back requesting SYN*/
-		return -1;
+		perror("Error receiving SYN from client\n");			
+	}else{
+		recv_header=(microtcp_header_t*)socket->recvbuf;
+		/*if control is not SYN error */
+		if(recv_header->control!=htons((uint16_t)(0*ACK + 1*SYN + 0*FIN))){
+			perror("Connection did not start with SYN from client\n");
+		}else{
+			/* That means that we received the SYN from the client
+			   so we change the send_header */
+			send_header->ack_number=recv_header->seq_number+1;
+			send_header->control=htons((uint16_t)(1*ACK + 1*SYN + 0*FIN));
+			isSYNReceived=1;
+		}
 	}
 	
 	/* HERE WE SEND THE SYN,ACK SIGNAL BACK TO THE CLIENT */
 
-	send_header=recv_header;
-	send_header->control=htons((uint16_t)(1*ACK + 1*SYN + 0*FIN));
-	send_header->ack_number=send_header->seq_number+1;
-	send_header->seq_number=rand()%999+1;		
 	memcpy(socket->recvbuf,send_header,sizeof(microtcp_header_t));
 	/*if sendto return -1 error*/
 	if(sendto(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,address_len==-1)){
-		perror("Error sending SYN,ACK to client\n");
-		return -1;
+		if(send_header->ack_number!=0)perror("Error sending SYN,ACK to client\n");
+		else perror("Error sending ACK=0 to client\n");
+	}else{
+		isSYNACKSent=1;
 	}
+	
+	/* if SYN was not received or/and SYN,ACK was not sent */
+	if(isSYNReceived*isSYNACKSent==0) return -1;
 	
 	/* HERE WE RECEIVE THE ACK SIGNAL FROM THE CLIENT */
 
 	/*if recvfrom return -1 error */
 	if(recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,&address_len)==-1){
 	        perror("Error receiving ACK from client\n");
-                /* send a header back that is a NACK*/
-                return -1;
-        }
-
-	/* reinitialising recv_header*/
-	free(recv_header);
-	recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
-	recv_header=(microtcp_header_t*)socket->recvbuf;
-        /*if control is not ACK error */
-        if(recv_header->control!=htons((uint16_t)(1*ACK + 0*SYN + 0*FIN))){
-                perror("Did not receive ACK from client\n");
-                /* send a header back requesting ACK*/
-                return -1;
-        }	
-	return 0;
+        }else{
+		/* reinitialising recv_header*/
+		free(recv_header);
+		recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+		recv_header=(microtcp_header_t*)socket->recvbuf;
+        	/*if control is not ACK error */
+        	if(recv_header->control!=htons((uint16_t)(1*ACK + 0*SYN + 0*FIN))){
+        	        perror("Did not receive ACK from client\n");
+	        }else{
+			isACKReceived=1;
+		}
+	}
+	/* if ACK was not received */
+	if(isACKReceived==0) return -1;
+	/* if ACK was received, SUCCESS*/
+	else return 1;
 }
 
 int
