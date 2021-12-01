@@ -44,6 +44,7 @@ microtcp_socket (int domain, int type, int protocol)
 	s1.curr_win_size = MICROTCP_WIN_SIZE;
 	s1.ssthresh = MICROTCP_INIT_SSTHRESH;
 	s1.cwnd = MICROTCP_INIT_CWND;
+	s1.recvbuf = (uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t));
 
 	return s1;
 
@@ -107,37 +108,22 @@ int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
-	microtcp_header_t send;
-	microtcp_header_t receive;
 
-	struct sockaddr* restrict addr=address;
-	socklen_t* restrict addr_len=&address_len;
-	int flags=0;
-	int rec;
-	socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t));
-	if(rec=recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,flags,addr,addr_len)==-1){
-		perror("TCP Accept first receival\n");
-		socket->state=INVALID;
+	microtcp_header_t *recv_header;
+	microtcp_header_t send_header;
+
+	if(socket->state!=LISTEN){
+		perror("Server is not bound yet!\n");
 		return -1;
 	}
-	if(socket->recvbuf[8]==htons((uint8_t)(0*ACK+1*SYN+0*FIN))){
-		printf("Client did not send SYN for the handshake\n");
+	
+	recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+	if(recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,&address_len)==-1){
+		perror("Error receiving SYN\n");	
 		return -1;
 	}
-	int r=rand()%999+1;
+	recv_header=(microtcp_header_t*)socket->recvbuf;
 	
-	
-
-	receive.seq_number=htonl((uint32_t)r);
-        receive.ack_number=
-        receive.control=htons(1*ACK+0*SYN+0*FIN);
-        receive.window=0;
-        receive.data_len=0;
-        receive.future_use0=0;
-        receive.future_use1=0;
-        receive.future_use2=0;
-        receive.checksum=0;
-
 	return 0;
 }
 
