@@ -73,7 +73,7 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
         microtcp_header_t *receive=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
         socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t)); 
         //initializing the header (to be sent to client)of microtcp to start the 3-way handshake
-        send.seq_number=htonl(rand());
+        send.seq_number=htonl(rand()%999+1);
         send.ack_number=0;
         send.control=htons(SYN);
         send.window=0;
@@ -91,15 +91,15 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
         if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)==-1){
                 perror("Send first packet of 3-way handshake error:");
                 socket->state=INVALID;
-                return -1;
-        }
+	}
+		
         
         if(recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,adres,&address_len)==-1){
                 perror("Receive from server error:");
                 socket->state=INVALID;
-                return -1;
-        }
-        if(
+        }else{
+		receive=(microtcp_header_t*)socket->recvbuf;
+		//check if receive was: a SYNACK,acknum=send.seqnumber+1
 	
        	return 1;
 }
@@ -224,9 +224,6 @@ int i;
 		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
 				buffer[i]=0;
 		memcpy(buffer,&send_head_pack,sizeof(send_head_pack));
-		TMPcheckSum=crc32(buffer,sizeof(buffer));
-		send_head_pack.checksum=htonl(TMPcheckSum);
-
 		  if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
 			socket->state=INVALID;
 			perror("microTCP Shutdown connection error");
@@ -249,8 +246,6 @@ int i;
 		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
 				buffer[i]=0;
 		memcpy(buffer,&send_head_pack,sizeof(send_head_pack));
-		TMPcheckSum=crc32(buffer,sizeof(buffer));
-		send_head_pack.checksum=htonl(TMPcheckSum);
 		  if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
 			socket->state=INVALID;
 			perror("microTCP Shutdown connection error - While 3rd packet send");
@@ -265,7 +260,6 @@ int i;
 			exit(EXIT_FAILURE);
 		}
 
-		TMPcheckSum=ntohl(recv_head_pack->checksum);
 		check_head_pack.seq_number = recv_head_pack->seq_number;
 		check_head_pack.ack_number = recv_head_pack->ack_number;
 		check_head_pack.control = recv_head_pack->control;
@@ -279,13 +273,12 @@ int i;
 		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
 				buffer[i]=0;
 		memcpy(buffer,&check_head_pack,sizeof(microtcp_header_t));
-		checkSum1=crc32(buffer,sizeof(buffer));
 
-		if(checkSum1!=TMPcheckSum){
+		/*if(checkSum1!=TMPcheckSum){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error");
 			return -1;
-		}
+		}*/
 		recv_head_pack->control=ntohs(recv_head_pack->control);
 		if(recv_head_pack->control!=ACK){
 			socket->state=INVALID;
@@ -316,8 +309,6 @@ int i;
 		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
 				buffer[i]=0;
 		memcpy(buffer,&send_head_pack,sizeof(send_head_pack));
-		TMPcheckSum=crc32(buffer,sizeof(buffer));
-		send_head_pack.checksum=htonl(TMPcheckSum);
 		  if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len) <0){
 			socket->state=INVALID;
 			perror("microTCP Shutdown connection error");
@@ -332,8 +323,6 @@ int i;
 			exit(EXIT_FAILURE);
 		}
 
-
-		TMPcheckSum=ntohl(recv_head_pack->checksum);
 		check_head_pack.seq_number = recv_head_pack->seq_number;
 		check_head_pack.ack_number = recv_head_pack->ack_number;
 		check_head_pack.control = recv_head_pack->control;
@@ -346,12 +335,11 @@ int i;
 		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
 				buffer[i]=0;
 		memcpy(buffer,&check_head_pack,sizeof(check_head_pack));
-		checkSum1=crc32(buffer,sizeof(buffer));
-		if(checkSum1!=TMPcheckSum){
+		/*if(checkSum1!=TMPcheckSum){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error - 2nd packet - error checksum");
 			return -1;
-		}
+		}*/
 
 
 		recv_head_pack->control=ntohs(recv_head_pack->control);
@@ -383,9 +371,6 @@ int i;
 			perror("microTCP shutdown connection fail (3rd packet recv)");
 			exit(EXIT_FAILURE);
 		}
-
-
-		TMPcheckSum=ntohl(recv_head_pack->checksum);
 		check_head_pack.seq_number = recv_head_pack->seq_number;
 		check_head_pack.ack_number = recv_head_pack->ack_number;
 		check_head_pack.control = recv_head_pack->control;
@@ -398,12 +383,11 @@ int i;
 		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
 				buffer[i]=0;
 		memcpy(buffer,&check_head_pack,sizeof(check_head_pack));
-		checkSum1=crc32(buffer,sizeof(buffer));
-		if(checkSum1!=TMPcheckSum){
+		/*if(checkSum1!=TMPcheckSum){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error");
 			return -1;
-		}
+		}*/
 
 
 		recv_head_pack->control=ntohs(recv_head_pack->control);
@@ -430,8 +414,6 @@ int i;
 		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
 				buffer[i]=0;
 		memcpy(buffer,&send_head_pack,sizeof(send_head_pack));
-		TMPcheckSum=crc32(buffer,sizeof(buffer));
-		send_head_pack.checksum=htonl(TMPcheckSum);
 		 if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len) <0){
 			socket->state=INVALID;
 			perror("microTCP Shutdown connection error - While 4th packet send");
