@@ -55,6 +55,7 @@ microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
                socklen_t address_len)
 {
 	int b;
+	if(socket->state==INVALID) return -1;
 	if(b=bind(socket->sd,address,address_len)==-1){
 		perror("TCP bind\n");
 		socket->state=INVALID;
