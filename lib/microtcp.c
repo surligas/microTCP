@@ -68,6 +68,8 @@ int
 microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                   socklen_t address_len)
 {
+        
+        int success_counter=0;
         microtcp_header_t send;
         struct sockaddr *restrict adres=(struct sockaddr* restrict)address;
         microtcp_header_t *receive=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
@@ -91,20 +93,47 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
         if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)==-1){
                 perror("Send first packet of 3-way handshake error:");
                 socket->state=INVALID;
-	}
+	}else{
+            success_counter++;
+    }
 		
         
         if(recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,adres,&address_len)==-1){
                 perror("Receive from server error:");
                 socket->state=INVALID;
+        }else{
+		        receive=(microtcp_header_t*)socket->recvbuf;
+		//check if receive was: a SYNACK,acknum=send.seqnumber+1
+                if((receive->control==htons((uint16_t)(1*ACK+1*SYN+0*FIN)))&&(receive->ack_number==send.seq_number+1)){
+                                send.control=htons((uint16_t)(1*ACK + 0*SYN+0*FIN));
+                                send.seq_number=send.seq_number+1;
+                                send.ack_number=receive->seq_number+1;
+                                success_counter++;
+                }else{
+                        socket->state=INVALID;
+                        perror("Receiving SYN_ACK signal error");
+                }
+        }
+        if(success_counter!=2){
+                printf("Error at the SYN-ACK signal transmission\n");
+                socket->state=INVALID;
                 return -1;
         }
-        if(socket->recvbuf[8]==htons((uint8_t)(0*ACK+1*SYN
+        memcpy(socket->recvbuf,&send,sizeof(microtcp_header_t));
+        if(sendto(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,address_len)==-1){
+                perror("TCP error sending ACK to server");
         }else{
-		receive=(microtcp_header_t*)socket->recvbuf;
-		//check if receive was: a SYNACK,acknum=send.seqnumber+1
+                success_counter++;
+
+        }
+        if(success_counter!=3){
+                socket->state=INVALID;
+                return -1;
+        }
+        socket->state=ESTABLISHED;
+        return socket->sd;
+                   
 	
-       	return 1;
 }
 
 int
@@ -183,9 +212,13 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 		}
 	}
 	/* if ACK was not received */
-	if(isACKReceived==0) return -1;
+	if(isACKReceived==0){
+            return -1;
 	/* if ACK was received, SUCCESS*/
-	else return socket->sd;
+    }else{ 
+            socket.state->ESTABLISHED;
+            return socket->sd;
+    }
 }
 
 int
@@ -237,7 +270,7 @@ int i;
 
 
 		srand(time(NULL));
-		send_head_pack.seq_number=rand()%1000+1;
+		send_head_pack.seq_number=rand()%999+1;
 		send_head_pack.ack_number=htonl(socket->seq_number+1);
 		send_head_pack.control=htons(FIN_ACK);
 		send_head_pack.window=htons(socket->curr_win_size);
@@ -426,8 +459,6 @@ int i;
 
 
 	 microtcp_sock_t s2;
-
-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
 
 	 if(how == 0){
 		 s2.state = CLOSING_BY_PEER;
