@@ -218,7 +218,7 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
             return -1;
 	/* if ACK was received, SUCCESS*/
     }else{ 
-            socket.state->ESTABLISHED;
+            socket->state=ESTABLISHED;
             return socket->sd;
     }
 }
