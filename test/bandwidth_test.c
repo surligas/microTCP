@@ -160,7 +160,8 @@ int
 server_microtcp (uint16_t listen_port, const char *file)
 {
  microtcp_sock_t server = microtcp_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
- 
+ server.isServer=1;
+
  struct sockaddr_in* client_address;
  client_address->sin_family = AF_INET;
  client_address->sin_port = htons(listen_port);
@@ -262,6 +263,7 @@ client_microtcp (const char *serverip, uint16_t server_port, const char *file)
 {
  microtcp_sock_t client = microtcp_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
+ client.isServer=0;
  struct sockaddr_in* server_address;
  server_address->sin_family = AF_INET;
  server_address->sin_port = htons(server_port);
