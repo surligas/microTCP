@@ -161,19 +161,13 @@ server_microtcp (uint16_t listen_port, const char *file)
 {
  microtcp_sock_t server = microtcp_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
  
- struct sockaddr_in* server_address;
- server_address->sin_family = AF_INET;
- server_address->sin_port = htons(listen_port);
- server_address->sin_addr.s_addr=htonl(INADDR_ANY);
- socklen_t server_address_len=sizeof(struct sockaddr_in); 
-
- if(microtcp_bind(&server,(struct sockaddr*) server_address,server_address_len)==-1) return -1;
-
  struct sockaddr_in* client_address;
  client_address->sin_family = AF_INET;
  client_address->sin_port = htons(listen_port);
  client_address->sin_addr.s_addr=htonl(INADDR_ANY);
  socklen_t client_address_len=sizeof(struct sockaddr_in);
+
+ if(microtcp_bind(&server,(struct sockaddr*) client_address,client_address_len)==-1) return -1;
 
  if(microtcp_accept(&server,(struct sockaddr*) client_address,client_address_len)==-1) return -1;
 
@@ -272,7 +266,7 @@ client_microtcp (const char *serverip, uint16_t server_port, const char *file)
  struct sockaddr_in* server_address;
  server_address->sin_family = AF_INET;
  server_address->sin_port = htons(server_port);
- server_address->sin_addr.s_addr=htonl(serverip);
+ server_address->sin_addr.s_addr=htonl(/*serverip*/INADDR_ANY);
  socklen_t server_address_len=sizeof(struct sockaddr_in);
 
  if(microtcp_connect(&client,(struct sockaddr*) server_address,server_address_len)==-1) return -1;
