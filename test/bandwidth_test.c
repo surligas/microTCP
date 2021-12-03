@@ -159,7 +159,25 @@ server_tcp (uint16_t listen_port, const char *file)
 int
 server_microtcp (uint16_t listen_port, const char *file)
 {
-  /*TODO: Write your code here */
+ microtcp_sock_t server = microtcp_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+ 
+ struct sockaddr_in* server_address;
+ server_address->sin_family = AF_INET;
+ server_address->sin_port = htons(listen_port);
+ server_address->sin_addr.s_addr=htonl(INADDR_ANY);
+ socklen_t server_address_len=sizeof(struct sockaddr_in); 
+
+ if(microtcp_bind(&server,(struct sockaddr*) server_address,server_address_len)==-1) return -1;
+
+ struct sockaddr_in* client_address;
+ client_address->sin_family = AF_INET;
+ client_address->sin_port = htons(listen_port);
+ client_address->sin_addr.s_addr=htonl(INADDR_ANY);
+ socklen_t client_address_len=sizeof(struct sockaddr_in);
+
+ if(microtcp_accept(&server,(struct sockaddr*) client_address,client_address_len)==-1) return -1;
+
+
   return 0;
 }
 
@@ -262,7 +280,7 @@ main (int argc, char **argv)
   char *ipstr = NULL;
   uint8_t is_server = 0;
   uint8_t use_microtcp = 0;
-
+	
   /* A very easy way to parse command line arguments */
   while ((opt = getopt (argc, argv, "hsmf:p:a:")) != -1) {
     switch (opt)
