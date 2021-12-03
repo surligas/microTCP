@@ -73,7 +73,7 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                 return -1;
         int success_counter=0;
         microtcp_header_t send;
-        struct sockaddr *restrict adres=(struct sockaddr* restrict)address;
+        struct sockaddr* adres=(struct sockaddr*)address;
         microtcp_header_t *receive=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
         socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t)); 
         //initializing the header (to be sent to client)of microtcp to start the 3-way handshake
