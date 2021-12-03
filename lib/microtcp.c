@@ -78,6 +78,7 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
         microtcp_header_t *receive=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
         socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t)); 
         //initializing the header (to be sent to client)of microtcp to start the 3-way handshake
+        srand(time(0));
         send.seq_number=htonl(rand()%999+1);
         send.ack_number=0;
         send.control=htons(SYN);
@@ -152,7 +153,8 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 	
 	recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
 	send_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
-	
+
+    srand(time(0));
 	send_header->seq_number=rand()%999+1;
 	send_header->ack_number=0;
 	send_header->control=htons((uint16_t)(0*ACK + 0*SYN + 0*FIN));
@@ -244,15 +246,13 @@ uint8_t buffer[MICROTCP_RECVBUF_LEN];
 microtcp_header_t *recv_head_pack=(microtcp_header_t *)malloc(sizeof(microtcp_header_t));
 microtcp_header_t send_head_pack;
 microtcp_header_t check_head_pack;
-uint32_t	checkSum1;
-uint32_t	TMPcheckSum;
 int i;
 
 	if(socket->state==CLOSING_BY_PEER){
 
 		send_head_pack.seq_number=0;
 		send_head_pack.ack_number=htonl(socket->seq_number+1);
-		send_head_pack.control=htons(ACK);
+		send_head_pack.control=htons(1*ACK+0*SYN+0*FIN);
 		send_head_pack.window=htons(socket->curr_win_size);
 		send_head_pack.data_len=0;
 		send_head_pack.future_use0=0;
@@ -460,15 +460,6 @@ int i;
 		}
 	}
 
-
-	 microtcp_sock_t s2;
-
-	 if(how == 0){
-		 s2.state = CLOSING_BY_PEER;
-	 }
-	 else if(how == 1){
-		s2.state = CLOSING_BY_HOST;
-	 }
 
  	free(socket);
  	s2.state = CLOSED;

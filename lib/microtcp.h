@@ -37,7 +37,6 @@
 #define FIN 1
 #define SYN 2
 #define ACK 4
-#define FIN_ACK 36864
 
 /**
  * Possible states of the microTCP socket
@@ -76,6 +75,7 @@ typedef struct
                                      to retrieve the data from the network. */
   size_t buf_fill_level;        /**< Amount of data in the buffer */
 
+  int isServer;
   size_t cwnd;
   size_t ssthresh;
 
