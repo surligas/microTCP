@@ -172,7 +172,6 @@ server_microtcp (uint16_t listen_port, const char *file)
  if(microtcp_accept(&server,(struct sockaddr*) client_address,client_address_len)==-1) return -1;
 
  microtcp_shutdown(&server,0);
-
   return 0;
 }
 
@@ -266,9 +265,9 @@ client_microtcp (const char *serverip, uint16_t server_port, const char *file)
  struct sockaddr_in* server_address;
  server_address->sin_family = AF_INET;
  server_address->sin_port = htons(server_port);
- server_address->sin_addr.s_addr=htonl(/*serverip*/INADDR_ANY);
+ server_address->sin_addr.s_addr=inet_addr(serverip);
  socklen_t server_address_len=sizeof(struct sockaddr_in);
-
+ 
  if(microtcp_connect(&client,(struct sockaddr*) server_address,server_address_len)==-1) return -1;
 
  microtcp_shutdown(&client,0);
