@@ -298,6 +298,30 @@ int i;
 				perror("microTCP shutdown connection error");
 				return -1;
 		}
+        tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
+		if(tmp_recvfrom == -1){
+
+			perror("microTCP shutdown connection fail");
+		}
+
+		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
+				buffer[i]=0;
+		memcpy(buffer,&check_head_pack,sizeof(microtcp_header_t));
+
+
+		recv_head_pack->control=ntohs(recv_head_pack->control);
+		if(recv_head_pack->control!=htons(1*ACK+0*SYN+0*FIN)){
+			socket->state=INVALID;
+			perror("microTCP shutdown connection error");
+			return -1;
+		}
+
+		if(ntohl(recv_head_pack->seq_number)!=ntohl(send_head_pack.ack_number) ||
+			ntohl(recv_head_pack->ack_number)!=ntohl(send_head_pack.seq_number)+1){
+				socket->state=INVALID;
+				perror("microTCP shutdown connection error");
+				return -1;
+		}
     }else{
 
 		send_head_pack.seq_number=htonl(socket->seq_number+1);
