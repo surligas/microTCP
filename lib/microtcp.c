@@ -270,14 +270,7 @@ int i;
 			    return -1;
              }
 
-
-		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
-				buffer[i]=0;
-		memcpy(buffer,&send_head_pack,sizeof(send_head_pack));
-		  if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
-			socket->state=INVALID;
-			perror("microTCP Shutdown connection error - While 3rd packet send");
-			return -1;
+        
 		}
 
 
@@ -285,30 +278,15 @@ int i;
 		if(tmp_recvfrom == -1){
 
 			perror("microTCP shutdown connection fail");
-			exit(EXIT_FAILURE);
 		}
-
-		check_head_pack.seq_number = recv_head_pack->seq_number;
-		check_head_pack.ack_number = recv_head_pack->ack_number;
-		check_head_pack.control = recv_head_pack->control;
-		check_head_pack.window = recv_head_pack->window;
-		check_head_pack.data_len = 0;
-		check_head_pack.future_use0 = 0;
-		check_head_pack.future_use1 = 0;
-		check_head_pack.future_use2 = 0;
-		check_head_pack.checksum = 0;
 
 		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
 				buffer[i]=0;
 		memcpy(buffer,&check_head_pack,sizeof(microtcp_header_t));
 
-		/*if(checkSum1!=TMPcheckSum){
-			socket->state=INVALID;
-			perror("microTCP shutdown connection error");
-			return -1;
-		}*/
+
 		recv_head_pack->control=ntohs(recv_head_pack->control);
-		if(recv_head_pack->control!=ACK){
+		if(recv_head_pack->control!=){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error");
 			return -1;
@@ -319,9 +297,8 @@ int i;
 				socket->state=INVALID;
 				perror("microTCP shutdown connection error");
 				return -1;
-			}
-	}
-	else{
+		}
+    }else{
 
 		send_head_pack.seq_number=htonl(socket->seq_number+1);
 		send_head_pack.ack_number=0;
@@ -351,27 +328,12 @@ int i;
 			exit(EXIT_FAILURE);
 		}
 
-		check_head_pack.seq_number = recv_head_pack->seq_number;
-		check_head_pack.ack_number = recv_head_pack->ack_number;
-		check_head_pack.control = recv_head_pack->control;
-		check_head_pack.window = recv_head_pack->window;
-		check_head_pack.data_len = 0;
-		check_head_pack.future_use0 = 0;
-		check_head_pack.future_use1 = 0;
-		check_head_pack.future_use2 = 0;
-		check_head_pack.checksum = 0;
 		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
 				buffer[i]=0;
 		memcpy(buffer,&check_head_pack,sizeof(check_head_pack));
-		/*if(checkSum1!=TMPcheckSum){
-			socket->state=INVALID;
-			perror("microTCP shutdown connection error - 2nd packet - error checksum");
-			return -1;
-		}*/
-
 
 		recv_head_pack->control=ntohs(recv_head_pack->control);
-		if(recv_head_pack->control!=ACK){
+		if(recv_head_pack->control!=htons(1*ACK+0*SYN+0*FIN)){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error - 2nd packet is not ACK");
 			return -1;
