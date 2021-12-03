@@ -69,6 +69,8 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                   socklen_t address_len)
 {
         
+        if(socket->state!=LISTEN)
+                return -1;
         int success_counter=0;
         microtcp_header_t send;
         struct sockaddr *restrict adres=(struct sockaddr* restrict)address;
