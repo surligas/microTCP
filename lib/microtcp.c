@@ -253,7 +253,7 @@ int i;
  		    srand(time(NULL));
 		    send_head_pack.seq_number=rand()%999+1;
 		    send_head_pack.ack_number=htonl(socket->seq_number+1);
-		    send_head_pack.control=htons(FIN_ACK);
+		    send_head_pack.control=htons(1*ACK+0*SYN+1*FIN);
 		    send_head_pack.window=htons(socket->curr_win_size);
 		    send_head_pack.data_len=0;
 		    send_head_pack.future_use0=0;
@@ -269,10 +269,6 @@ int i;
 			    perror("microTCP Shutdown connection error");
 			    return -1;
              }
-
-        
-		}
-
 
 		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
 		if(tmp_recvfrom == -1){
@@ -310,23 +306,17 @@ int i;
 
 
 		recv_head_pack->control=ntohs(recv_head_pack->control);
-		if(recv_head_pack->control!=htons(1*ACK+0*SYN+0*FIN)){
+		if(recv_head_pack->control!=htons(1*ACK+0*SYN+1*FIN)){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error");
 			return -1;
 		}
 
-		if(ntohl(recv_head_pack->seq_number)!=ntohl(send_head_pack.ack_number) ||
-			ntohl(recv_head_pack->ack_number)!=ntohl(send_head_pack.seq_number)+1){
-				socket->state=INVALID;
-				perror("microTCP shutdown connection error");
-				return -1;
-		}
     }else{
 
 		send_head_pack.seq_number=htonl(socket->seq_number+1);
-		send_head_pack.ack_number=0;
-		send_head_pack.control=htons(FIN_ACK);
+        send_head_pack.ack_number=0;
+        send_head_pack.control=htons(1*ACK+0*SYN+1*FIN);
 		send_head_pack.window=htons(socket->curr_win_size);
 		send_head_pack.data_len=0;
 		send_head_pack.future_use0=0;
