@@ -286,7 +286,7 @@ int i;
 
 
 		recv_head_pack->control=ntohs(recv_head_pack->control);
-		if(recv_head_pack->control!=){
+		if(recv_head_pack->control!=htons(1*ACK+0*SYN+0*FIN)){
 			socket->state=INVALID;
 			perror("microTCP shutdown connection error");
 			return -1;
@@ -325,7 +325,6 @@ int i;
 		if(tmp_recvfrom == -1){
 
 			perror("microTCP shutdown connection fail (2nd packet recv)");
-			exit(EXIT_FAILURE);
 		}
 
 		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
