@@ -247,9 +247,10 @@ microtcp_header_t *recv_head_pack=(microtcp_header_t *)malloc(sizeof(microtcp_he
 microtcp_header_t send_head_pack;
 microtcp_header_t check_head_pack;
 int i;
-
-	if(socket->state==CLOSING_BY_PEER){
-
+    
+	if(socket->isServer==0){
+            socket->state=CLOSING_BY_PEER;
+    
 		send_head_pack.seq_number=0;
 		send_head_pack.ack_number=htonl(socket->seq_number+1);
 		send_head_pack.control=htons(1*ACK+0*SYN+0*FIN);
@@ -268,9 +269,7 @@ int i;
 			socket->state=INVALID;
 			perror("microTCP Shutdown connection error");
 			return -1;
-		}
-
-
+          }
 
 		srand(time(NULL));
 		send_head_pack.seq_number=rand()%999+1;
