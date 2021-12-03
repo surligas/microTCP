@@ -250,37 +250,26 @@ int i;
     
 	if(socket->isServer==0){
             socket->state=CLOSING_BY_PEER;
-    
-		send_head_pack.seq_number=0;
-		send_head_pack.ack_number=htonl(socket->seq_number+1);
-		send_head_pack.control=htons(1*ACK+0*SYN+0*FIN);
-		send_head_pack.window=htons(socket->curr_win_size);
-		send_head_pack.data_len=0;
-		send_head_pack.future_use0=0;
-		send_head_pack.future_use1=0;
-		send_head_pack.future_use2=0;
-		send_head_pack.checksum=0;
+ 		    srand(time(NULL));
+		    send_head_pack.seq_number=rand()%999+1;
+		    send_head_pack.ack_number=htonl(socket->seq_number+1);
+		    send_head_pack.control=htons(FIN_ACK);
+		    send_head_pack.window=htons(socket->curr_win_size);
+		    send_head_pack.data_len=0;
+		    send_head_pack.future_use0=0;
+		    send_head_pack.future_use1=0;
+		    send_head_pack.future_use2=0;
+		    send_head_pack.checksum=0;  
 
-
-		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
+		    for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
 				buffer[i]=0;
-		memcpy(buffer,&send_head_pack,sizeof(send_head_pack));
-		  if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
-			socket->state=INVALID;
-			perror("microTCP Shutdown connection error");
-			return -1;
-          }
+		    memcpy(buffer,&send_head_pack,sizeof(send_head_pack));
+		    if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
+			    socket->state=INVALID;
+			    perror("microTCP Shutdown connection error");
+			    return -1;
+             }
 
-		srand(time(NULL));
-		send_head_pack.seq_number=rand()%999+1;
-		send_head_pack.ack_number=htonl(socket->seq_number+1);
-		send_head_pack.control=htons(FIN_ACK);
-		send_head_pack.window=htons(socket->curr_win_size);
-		send_head_pack.data_len=0;
-		send_head_pack.future_use0=0;
-		send_head_pack.future_use1=0;
-		send_head_pack.future_use2=0;
-		send_head_pack.checksum=0;
 
 		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
 				buffer[i]=0;
