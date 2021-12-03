@@ -71,7 +71,7 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
         microtcp_header_t *receive=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
         socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t)); 
         //initializing the header (to be sent to client)of microtcp to start the 3-way handshake
-        send.seq_number=htonl(rand());
+        send.seq_number=htonl(rand()%999+1);
         send.ack_number=0;
         send.control=htons(SYN);
         send.window=0;
@@ -97,7 +97,7 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                 socket->state=INVALID;
                 return -1;
         }
-        if(
+        if(socket->recvbuf[8]==htons((uint8_t)(0*ACK+1*SYN
 	
        	return 1;
 }
@@ -121,7 +121,7 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 		printf("Client did not send SYN for the handshake\n");
 		return -1;
 	}
-	socket->recvbuf[8]=htons(uint8_t)(0*ACK+0*SYN+0*FIN));
+	socket->recvbuf[8]=htons((uint8_t)(0*ACK+0*SYN+0*FIN));
 
 	return 0;
 }
