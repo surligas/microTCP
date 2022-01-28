@@ -197,6 +197,8 @@ client_tcp (const char *serverip, uint16_t server_port, const char *file)
     perror ("Allocate application receive buffer");
     return -EXIT_FAILURE;
   }
+printf("GEIA SOU1\n");
+
 
   /* Open the file for writing the data from the network */
   fp = fopen (file, "r");
@@ -205,13 +207,14 @@ client_tcp (const char *serverip, uint16_t server_port, const char *file)
     free (buffer);
     return -EXIT_FAILURE;
   }
-
+printf("GEIA SOU2\n");
   if ((sock = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
     perror ("Opening TCP socket");
     free (buffer);
     fclose (fp);
     return -EXIT_FAILURE;
   }
+printf("GEIA SOu3\n");
 
   struct sockaddr_in sin;
   memset (&sin, 0, sizeof(struct sockaddr_in));
@@ -220,6 +223,7 @@ client_tcp (const char *serverip, uint16_t server_port, const char *file)
   sin.sin_port = htons (server_port);
   /* The server's IP*/
   sin.sin_addr.s_addr = inet_addr (serverip);
+printf("GEIA SOU\n");
 
   if (connect (sock, (struct sockaddr *) &sin, sizeof(struct sockaddr_in))
       == -1) {
