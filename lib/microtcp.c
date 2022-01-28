@@ -27,6 +27,9 @@
 #include <unistd.h>
 #include <time.h>
 
+/* our own functions*/
+microtcp_header_t initialize(int seq,int ack,int who,int Ack,int Rst,int Syn,int Fin,uint16_t window,uint32_t data_len,uint32_t future_use0,uint32_t future_use1, uint32_t future_use2,uint32_t checksum );
+
 microtcp_sock_t
 microtcp_socket (int domain, int type, int protocol)
 {
@@ -78,40 +81,30 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
         microtcp_header_t *receive=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
         socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t)); 
         //initializing the header (to be sent to client)of microtcp to start the 3-way handshake
-        srand(time(0));
-        send.seq_number=htonl(rand()%999+1);
-        send.ack_number=0;
-        send.control=htons(SYN);
-        send.window=0;
-        send.data_len=0;
-        send.future_use0=0;
-        send.future_use1=0;
-        send.future_use2=0;
-        send.checksum=0;
+	send=initialize(rand()%999+1,0,0,0,0,SYN,0,0,0,0,0,0,0);
         
         for(int i=0;i<MICROTCP_RECVBUF_LEN;i++){
                 socket->recvbuf[i]=0;
         }
-        socket->recvbuf[8]=send.control;
-
+	
+	memcpy(socket->recvbuf,&send,sizeof(microtcp_header_t));
+	
         if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)==-1){
                 perror("Send first packet of 3-way handshake error:");
                 socket->state=INVALID;
 	}else{
             success_counter++;
-    }
+    	}
 		
         
         if(recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,adres,&address_len)==-1){
                 perror("Receive from server error:");
                 socket->state=INVALID;
         }else{
-		        receive=(microtcp_header_t*)socket->recvbuf;
+		receive=(microtcp_header_t*)socket->recvbuf;
 		//check if receive was: a SYNACK,acknum=send.seqnumber+1
-                if((receive->control==htons((uint16_t)(1*ACK+1*SYN+0*FIN)))&&(receive->ack_number==send.seq_number+1)){
-                                send.control=htons((uint16_t)(1*ACK + 0*SYN+0*FIN));
-                                send.seq_number=send.seq_number+1;
-                                send.ack_number=receive->seq_number+1;
+                if((ntohs(receive->control)==(SYN|ACK))&&(receive->ack_number==send.seq_number+1)){	  	/* (ntohs(receive->control)==(SYN|ACK)) ISWS LA8OS */
+				send=initialize(send.seq_number+1,ntohl(receive->seq_number+1),0,ACK,0,SYN,0,0,0,0,0,0,0);
                                 success_counter++;
                 }else{
                         socket->state=INVALID;
@@ -145,25 +138,16 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
                  socklen_t address_len)
 {
 
-	microtcp_header_t *recv_header;
-	microtcp_header_t *send_header;
+	microtcp_header_t* recv_header;
+	microtcp_header_t send_header;
 	int isSYNReceived=0;
 	int isSYNACKSent=0;
 	int isACKReceived=0;
 	
 	recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
-	send_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
 
-    srand(time(0));
-	send_header->seq_number=rand()%999+1;
-	send_header->ack_number=0;
-	send_header->control=htons((uint16_t)(0*ACK + 0*SYN + 0*FIN));
-	send_header->window=0;
-	send_header->data_len=0;
-	send_header->future_use0=0;
-	send_header->future_use1=0;
-	send_header->future_use2=0;
-	send_header->checksum=0;
+    	srand(time(0));
+	
 
 	/* HERE WE RECEIVE THE SYN SIGNAL FROM THE CLIENT */
 	
@@ -173,28 +157,26 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 	}else{
 		recv_header=(microtcp_header_t*)socket->recvbuf;
 		/*if control is not SYN error */
-		if(recv_header->control!=htons((uint16_t)(0*ACK + 1*SYN + 0*FIN))){
+		if(ntohs(recv_header->control)!=SYN){
 			perror("Connection did not start with SYN from client\n");
 		}else{
 			/* That means that we received the SYN from the client
 			   so we change the send_header */
-			send_header->ack_number=recv_header->seq_number+1;
-			send_header->control=htons((uint16_t)(1*ACK + 1*SYN + 0*FIN));
+			send_header=initialize(rand()%999+1,htons(recv_header->seq_number+1),0,1,0,SYN,0,0,0,0,0,0,0);
 			isSYNReceived=1;
 		}
 	}
 	
 	/* HERE WE SEND THE SYN,ACK SIGNAL BACK TO THE CLIENT */
 
-	memcpy(socket->recvbuf,send_header,sizeof(microtcp_header_t));
+	memcpy(socket->recvbuf,&send_header,sizeof(microtcp_header_t));
 	/*if sendto return -1 error*/
 	if(sendto(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,address_len==-1)){
-		if(send_header->ack_number!=0)perror("Error sending SYN,ACK to client\n");
+		if(send_header.ack_number!=0)perror("Error sending SYN,ACK to client\n");
 		else perror("Error sending ACK=0 to client\n");
 	}else{
 		isSYNACKSent=1;
 	}
-	socket->recvbuf[8]=htons((uint8_t)(0*ACK+0*SYN+0*FIN));
 	
 	/* if SYN was not received or/and SYN,ACK was not sent */
 	if(isSYNReceived*isSYNACKSent==0) return -1;
@@ -210,7 +192,7 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 		recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
 		recv_header=(microtcp_header_t*)socket->recvbuf;
         	/*if control is not ACK error */
-        	if(recv_header->control!=htons((uint16_t)(1*ACK + 0*SYN + 0*FIN))){
+        	if(ntohs(recv_header->control)!=ACK){
         	        perror("Did not receive ACK from client\n");
 	        }else{
 			isACKReceived=1;
@@ -439,25 +421,25 @@ microtcp_header_t initialize(int seq,int ack,int who,int Ack,int Rst,int Syn,int
 	//1== receiver ntohs
 	microtcp_header_t sock;
 	if(who==1){
-		sock->seq_number=htonl(seq);
-		sock->ack_number=htonl(ack);
-		sock->control=htons(Ack|Rst|Syn|Fin);
-		sock->window=htons(window);
-		sock->data_len=hton(data_len);
-		sock->future_use0=htonl(future_use0);
-		sock->future_use1=htonl(future_use1);
-		sock->future_use2=htonl(future_use2);
-		sock->checksum=htonl(checksum);
+		sock.seq_number=htonl(seq);
+		sock.ack_number=htonl(ack);
+		sock.control=htons(Ack|Rst|Syn|Fin);
+		sock.window=htons(window);
+		sock.data_len=htonl(data_len);
+		sock.future_use0=htonl(future_use0);
+		sock.future_use1=htonl(future_use1);
+		sock.future_use2=htonl(future_use2);
+		sock.checksum=htonl(checksum);
 	}else{
-		sock->seq_number=ntohl(seq);
-		sock->ack_number=ntohl(ack);
-		sock->control=ntohs(Ack|Rst|Syn|Fin);
-		sock->window=ntohs(window);
-		sock->data_len=ntoh(data_len);
-		sock->future_use0=ntohl(future_use0);
-		sock->future_use1=ntohl(future_use1);
-		sock->future_use2=ntohl(future_use2);
-		sock->checksum=ntohl(checksum);	
+		sock.seq_number=ntohl(seq);
+		sock.ack_number=ntohl(ack);
+		sock.control=ntohs(Ack|Rst|Syn|Fin);
+		sock.window=ntohs(window);
+		sock.data_len=ntohl(data_len);
+		sock.future_use0=ntohl(future_use0);
+		sock.future_use1=ntohl(future_use1);
+		sock.future_use2=ntohl(future_use2);
+		sock.checksum=ntohl(checksum);	
 	}
 
 
