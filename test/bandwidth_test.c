@@ -33,6 +33,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+/* CHANGES */
+#include <limits.h>
+/* END OF CHANGES */
+
 #include "../lib/microtcp.h"
 
 #define CHUNK_SIZE 4096
@@ -285,7 +289,11 @@ main (int argc, char **argv)
   char *ipstr = NULL;
   uint8_t is_server = 0;
   uint8_t use_microtcp = 0;
-	
+  /* CHANGES */
+  char* p;
+  char buf[PATH_MAX];
+  /* END OF CHANGES */  
+
   /* A very easy way to parse command line arguments */
   while ((opt = getopt (argc, argv, "hsmf:p:a:")) != -1) {
     switch (opt)
@@ -302,6 +310,11 @@ main (int argc, char **argv)
         filestr = strdup (optarg);
         /* A few checks will be nice here...*/
         /* Convert the given file to absolute path */
+	p=realpath(filestr,buf);
+	if(p){
+		printf("%s\n",p);
+	}
+
         break;
       case 'p':
         port = atoi (optarg);
@@ -336,22 +349,23 @@ main (int argc, char **argv)
   if (is_server) {
 
     if (use_microtcp) {
-      exit_code = server_microtcp (port, filestr);
+      exit_code = server_microtcp (port, p);
     }
     else {
-      exit_code = server_tcp (port, filestr);
+      exit_code = server_tcp (port, p);
     }
   }
   else {
     if (use_microtcp) {
-      exit_code = client_microtcp (ipstr, port, filestr);
+      exit_code = client_microtcp (ipstr, port, p);
     }
     else {
-      exit_code = client_tcp (ipstr, port, filestr);
+      exit_code = client_tcp (ipstr, port, p);
     }
   }
 
-  free (filestr);
+  free(filestr);
+  free (p);
   free (ipstr);
   return exit_code;
 }

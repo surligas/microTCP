@@ -1,14 +1,14 @@
-if(NOT EXISTS "C:/Users/MANOS KARYDIS/Desktop/microTCP/build/install_manifest.txt")
-  message(FATAL_ERROR "Cannot find install manifest: C:/Users/MANOS KARYDIS/Desktop/microTCP/build/install_manifest.txt")
-endif(NOT EXISTS "C:/Users/MANOS KARYDIS/Desktop/microTCP/build/install_manifest.txt")
+if(NOT EXISTS "/home/csd4417/microTCP/build/install_manifest.txt")
+  message(FATAL_ERROR "Cannot find install manifest: /home/csd4417/microTCP/build/install_manifest.txt")
+endif(NOT EXISTS "/home/csd4417/microTCP/build/install_manifest.txt")
 
-file(READ "C:/Users/MANOS KARYDIS/Desktop/microTCP/build/install_manifest.txt" files)
+file(READ "/home/csd4417/microTCP/build/install_manifest.txt" files)
 string(REGEX REPLACE "\n" ";" files "${files}")
 foreach(file ${files})
   message(STATUS "Uninstalling $ENV{DESTDIR}${file}")
   if(IS_SYMLINK "$ENV{DESTDIR}${file}" OR EXISTS "$ENV{DESTDIR}${file}")
     exec_program(
-      "C:/Program Files/CMake/bin/cmake.exe" ARGS "-E remove \"$ENV{DESTDIR}${file}\""
+      "/usr/bin/cmake" ARGS "-E remove \"$ENV{DESTDIR}${file}\""
       OUTPUT_VARIABLE rm_out
       RETURN_VALUE rm_retval
       )
