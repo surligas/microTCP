@@ -172,7 +172,6 @@ server_microtcp (uint16_t listen_port, const char *file)
 
  if(microtcp_accept(&server,(struct sockaddr*) client_address,client_address_len)==-1) return -1;
 
- microtcp_shutdown(&server,0);
   return 0;
 }
 
