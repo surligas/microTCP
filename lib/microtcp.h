@@ -34,9 +34,10 @@
 #define MICROTCP_WIN_SIZE MICROTCP_RECVBUF_LEN
 #define MICROTCP_INIT_CWND (3 * MICROTCP_MSS)
 #define MICROTCP_INIT_SSTHRESH MICROTCP_WIN_SIZE
-#define FIN 1
-#define SYN 2
-#define ACK 4
+#define ACK 0b1000
+#define RST 0b0100
+#define SYN 0b0010
+#define FIN 0b0001
 
 /**
  * Possible states of the microTCP socket

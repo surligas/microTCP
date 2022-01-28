@@ -431,3 +431,36 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 }
 
 
+/* Our own Function(s) */
+
+//
+microtcp_header_t initialize(int seq,int ack,int who,int Ack,int Rst,int Syn,int Fin,uint16_t window,uint32_t data_len,uint32_t future_use0,uint32_t future_use1, uint32_t future_use2,uint32_t checksum ){
+	//0==sender htons
+	//1== receiver ntohs
+	microtcp_header_t sock;
+	if(who==1){
+		sock->seq_number=htonl(seq);
+		sock->ack_number=htonl(ack);
+		sock->control=htons(Ack|Rst|Syn|Fin);
+		sock->window=htons(window);
+		sock->data_len=hton(data_len);
+		sock->future_use0=htonl(future_use0);
+		sock->future_use1=htonl(future_use1);
+		sock->future_use2=htonl(future_use2);
+		sock->checksum=htonl(checksum);
+	}else{
+		sock->seq_number=ntohl(seq);
+		sock->ack_number=ntohl(ack);
+		sock->control=ntohs(Ack|Rst|Syn|Fin);
+		sock->window=ntohs(window);
+		sock->data_len=ntoh(data_len);
+		sock->future_use0=ntohl(future_use0);
+		sock->future_use1=ntohl(future_use1);
+		sock->future_use2=ntohl(future_use2);
+		sock->checksum=ntohl(checksum);	
+	}
+
+
+	return sock;
+}
+
