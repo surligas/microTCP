@@ -408,7 +408,7 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
                int flags)
 {
 	ssize_t bytes_send;
-	if(bytes_send=send(socket->sd,buffer,length,flags)==-1){
+	if(bytes_send=sendto(socket->sd,buffer,length,flags,NULL,0)==-1){
 		perror("Error sending the data");
 		return -1;
 	}
@@ -427,7 +427,7 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 	uint8_t* newbuf;
 	
 	
-	if(bytes_received=recv(socket->sd,buffer,length,flags)==-1){
+	if(bytes_received=recvfrom(socket->sd,buffer,length,flags,NULL,NULL)==-1){
 		perror("Error receiving the data");
 		return -1;
 	}
