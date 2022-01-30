@@ -76,7 +76,6 @@ typedef struct
                                      to retrieve the data from the network. */
   size_t buf_fill_level;        /**< Amount of data in the buffer */
 
-  int isServer;
   size_t cwnd;
   size_t ssthresh;
 

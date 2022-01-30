@@ -204,7 +204,7 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
         socket->state=ESTABLISHED;
 	printf("\n3-way handshake achieved!\nConnection established!\n\n");
 
-        return socket->sd;
+        return 0;
     
 }
 
@@ -227,10 +227,7 @@ ssize_t tmp_recvfrom;
 //uint8_t buffer[MICROTCP_RECVBUF_LEN];
 microtcp_header_t *recv_head_pack=(microtcp_header_t *)malloc(sizeof(microtcp_header_t));
 microtcp_header_t send_head_pack;
-int i;
-    
-	if(socket->isServer==0){	/* if the client calls shutdown */
-	
+int i;	
 		
 		srand(time(NULL));
 		/* Client sends FIN,ACK to server */
@@ -244,6 +241,22 @@ int i;
 			perror("microTCP Shutdown connection error");
 			return -1;
              	}
+
+		/* Server receives Fin,ACK from client */
+                tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
+                if(tmp_recvfrom == -1){
+                        socket->state=INVALID;
+                        perror("microTCP shutdown connection fail (2nd packet recv)");
+                        return -1;
+                }
+
+                if(ntohs(recv_head_pack->control)!=(ACK|FIN)){
+                        socket->state=INVALID;
+                        perror("microTCP shutdown connection error - 2nd packet is not ACK");
+                        return -1;
+                }
+
+		printf("GEIA\n");
 
 		/* Client receives ACK from server */
 		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
@@ -306,7 +319,6 @@ int i;
 		free(socket->recvbuf);
 		close(socket->sd);
     	
-	}else{		/* If the server calls shutdown */
 
 		/* Server receives Fin,ACK from client */
 		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
@@ -383,7 +395,6 @@ int i;
 		/* Server closing */
 		free(socket->recvbuf);
 		close(socket->sd);
-	}
  	socket->state = CLOSED;
 
 	return 1;
