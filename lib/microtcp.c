@@ -423,12 +423,18 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
 	ssize_t bytes_received;
 	int i=0;
-	microtcp_header_t *header;	
+	microtcp_header_t *header;
+	uint8_t* newbuf;
+	
+	
 	if(bytes_received=recv(socket->sd,buffer,length,flags)==-1){
 		perror("Error receiving the data\n");
 		return -1;
 	}
-	memcpy(header,buffer[sizeof(microtcp_header_t)-1],sizeof(microtcp_header_t));
+	newbuf=(uint8_t*)malloc(length);
+	newbuf=(uint8_t*)buffer;
+	header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+	memcpy(header,&newbuf[sizeof(microtcp_header_t)-1],sizeof(microtcp_header_t));
 
 	if(htons(header->control)!=ACK){
 		//actions: fast retransmit

@@ -198,17 +198,16 @@ server_microtcp (uint16_t listen_port, const char *file)
 	}
 
 	clock_gettime (CLOCK_MONOTONIC_RAW, &start_time);
-	while ((received = microtcp_recv(accepted, socket->recvbuffer, CHUNK_SIZE, 0)) > 0) {
- 		written = fwrite (socket->recvbuffer, sizeof(uint8_t), received, fp);
+	while ((received = microtcp_recv(&server, server.recvbuf, CHUNK_SIZE + sizeof(microtcp_header_t), 0)) > 0) {
+ 		written = fwrite (&(server.recvbuf)[sizeof(microtcp_header_t)-1], sizeof(uint8_t), received - sizeof(microtcp_header_t), fp);
 		total_bytes += received;
  		if (written * sizeof(uint8_t) != received) {
    			printf ("Failed to write to the file the"
            		" amount of data received from the network.\n");
       			//shutdown (accepted, SHUT_RDWR);
       			//shutdown (sock, SHUT_RDWR);
-      			close (accepted);
-      			close (sock);
-      			free (buffer);
+      			close (server.sd);
+      			free (server.recvbuf);
       			fclose (fp);
       			return -EXIT_FAILURE;
     		}
@@ -216,7 +215,7 @@ server_microtcp (uint16_t listen_port, const char *file)
   
 	clock_gettime (CLOCK_MONOTONIC_RAW, &end_time);
   	print_statistics (total_bytes, start_time, end_time);
-
+	
 	return 0;
 }
 
@@ -307,12 +306,19 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
 	microtcp_sock_t client = microtcp_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	FILE *fp;
 	struct sockaddr_in* server_address;
+	struct sockaddr_in sin;
+	size_t read_items=0;
+	ssize_t data_sent;
+	microtcp_header_t header;
+	int checksum;
+	uint8_t* buffer;
+
 	fp=fopen(file,"r");
+	
 	if(!fp){
 		perror("Open file for reading");
 		return -EXIT_FAILURE;
 	}
-	struct sockaddr_in sin;
 	memset(&sin,0,sizeof(struct sockaddr_in));
 	sin.sin_family=AF_INET;
 	sin.sin_port=htons(server_port);
@@ -324,7 +330,43 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
 	}
 	printf("Starting sending data...\n");
 
-	//microtcp_shutdown(&client,0);
+
+	buffer=(uint8_t*)malloc(CHUNK_SIZE);
+	/* Start sending the data */
+  	while (!feof (fp)) {
+    		read_items = fread (buffer, sizeof(uint8_t), CHUNK_SIZE, fp);
+    		if (read_items < 1) {
+    			perror ("Failed read from file");
+      			//shutdown (sock, SHUT_RDWR);
+      			close (client.sd);
+      			free (buffer);
+      			fclose (fp);
+      			return -EXIT_FAILURE;
+   		}
+		
+		checksum=0;		//calculate checksum
+
+		//Initialising header
+		header=initialize(client.seq_number,client.ack_number,ACK,0,0,0,client.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, 0, 0, 0, checksum);	
+	
+		//Making buffer
+		memcpy(client.recvbuf,&header,sizeof(microtcp_header_t));
+		memcpy(&(client.recvbuf)[sizeof(microtcp_header_t)-1],buffer,CHUNK_SIZE);
+
+    		data_sent = microtcp_send (&client, client.recvbuf, read_items * sizeof(uint8_t), 0);
+    		if (data_sent != read_items * sizeof(uint8_t)) {
+      			printf ("Failed to send the"
+        	      " amount of data read from the file.\n");
+      			//shutdown (sock, SHUT_RDWR);
+      			close (client.sd);
+      			free (buffer);
+      			fclose (fp);
+     			return -EXIT_FAILURE;
+    		}
+
+  	}
+
+  	printf ("Data sent. Terminating...\n");
 
 }
 
