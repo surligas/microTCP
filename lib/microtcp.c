@@ -407,13 +407,28 @@ ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
                int flags)
 {
+	ssize_t bytes_send;
+	if(bytes_send=send(socket->sd,buffer,length,flags)==-1){
+		perror("Error sending the data\n");
+		return -1;
+	}
 
+	return bytes_send;
+
+			
 }
 
 ssize_t
 microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
-	
+	ssize_t bytes_received;
+	if(bytes_received=recv(socket->sd,buffer,length,flags)==-1){
+		perror("Error receiving the data\n");
+		return -1;
+	}
+
+	return bytes_received;
+
 }
 
 
