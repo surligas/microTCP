@@ -168,6 +168,12 @@ server_microtcp (uint16_t listen_port, const char *file)
 	struct sockaddr client_addr;
 	FILE *fp;
 	socklen_t client_addr_len;
+	struct timespec start_time;
+	struct timespec end_time;
+	int received;
+	ssize_t written;
+	ssize_t total_bytes=0;
+
 	fp=fopen(file,"w");
 	if(!fp){
 		perror("Open file for writing");
@@ -190,6 +196,26 @@ server_microtcp (uint16_t listen_port, const char *file)
 		fclose(fp);
 		return -EXIT_FAILURE;
 	}
+
+	clock_gettime (CLOCK_MONOTONIC_RAW, &start_time);
+	while ((received = microtcp_recv(accepted, socket->recvbuffer, CHUNK_SIZE, 0)) > 0) {
+ 		written = fwrite (socket->recvbuffer, sizeof(uint8_t), received, fp);
+		total_bytes += received;
+ 		if (written * sizeof(uint8_t) != received) {
+   			printf ("Failed to write to the file the"
+           		" amount of data received from the network.\n");
+      			//shutdown (accepted, SHUT_RDWR);
+      			//shutdown (sock, SHUT_RDWR);
+      			close (accepted);
+      			close (sock);
+      			free (buffer);
+      			fclose (fp);
+      			return -EXIT_FAILURE;
+    		}
+  	}
+  
+	clock_gettime (CLOCK_MONOTONIC_RAW, &end_time);
+  	print_statistics (total_bytes, start_time, end_time);
 
 	return 0;
 }
