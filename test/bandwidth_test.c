@@ -181,12 +181,6 @@ server_microtcp (uint16_t listen_port, const char *file)
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons (listen_port);
 	sin.sin_addr.s_addr=INADDR_ANY;
-	/* struct sockaddr_in* client_address;
-	   client_address->sin_family = AF_INET;
-	   client_address->sin_port = htons(listen_port);
-	   client_address->sin_addr.s_addr=htonl(INADDR_ANY);
-	   socklen_t client_address_len=sizeof(struct sockaddr_in);
-	   */
 	if(microtcp_bind(&server,(struct sockaddr*) &sin,sizeof(struct sockaddr_in))==-1){
 		perror("TCP bind");
 
@@ -289,10 +283,6 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
 	FILE *fp;
 	client.isServer=0;
 	struct sockaddr_in* server_address;
-	/*server_address->sin_family = AF_INET;
-	server_address->sin_port = htons(server_port);
-	server_address->sin_addr.s_addr=inet_addr(serverip);
-	socklen_t server_address_len=sizeof(struct sockaddr_in);*/
 	fp=fopen(file,"r");
 	if(!fp){
 		perror("Open file for reading");
@@ -306,7 +296,6 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
 	
 
 	if(microtcp_connect(&client,(struct sockaddr*)&sin,sizeof(struct sockaddr_in))==-1){
-		//perror("TCP connect");
 		return -EXIT_FAILURE;
 	}
 	printf("Starting sending data...\n");
