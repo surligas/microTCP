@@ -160,23 +160,45 @@ server_tcp (uint16_t listen_port, const char *file)
   return 0;
 }
 
-int
+	int
 server_microtcp (uint16_t listen_port, const char *file)
 {
- microtcp_sock_t server = microtcp_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
- server.isServer=1;
+	microtcp_sock_t server; //= microtcp_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	server.isServer=1;
+	struct sockaddr_in sin;
+	struct sockaddr client_addr;
+	FILE *fp;
+	socklen_t client_addr_len;
+	fp=fopen(file,"w");
+	if(!fp){
+		perror("Open file for writing");
+		return -EXIT_FAILURE;
+	}
 
- struct sockaddr_in* client_address;
- client_address->sin_family = AF_INET;
- client_address->sin_port = htons(listen_port);
- client_address->sin_addr.s_addr=htonl(INADDR_ANY);
- socklen_t client_address_len=sizeof(struct sockaddr_in);
+	server = microtcp_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
- if(microtcp_bind(&server,(struct sockaddr*) client_address,client_address_len)==-1) return -1;
+	memset (&sin, 0, sizeof(struct sockaddr_in));
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons (listen_port);
+	sin.sin_addr.s_addr=INADDR_ANY;
+	/* struct sockaddr_in* client_address;
+	   client_address->sin_family = AF_INET;
+	   client_address->sin_port = htons(listen_port);
+	   client_address->sin_addr.s_addr=htonl(INADDR_ANY);
+	   socklen_t client_address_len=sizeof(struct sockaddr_in);
+	   */
+	if(microtcp_bind(&server,(struct sockaddr*) &sin,sizeof(struct sockaddr_in))==-1){
+		perror("TCP bind");
 
- if(microtcp_accept(&server,(struct sockaddr*) client_address,client_address_len)==-1) return -1;
+	}
+	client_addr_len = sizeof(struct sockaddr);
+	if(microtcp_accept(&server,&client_addr,client_addr_len)==-1){
+		perror("TCP Accept");
+		fclose(fp);
+		return -EXIT_FAILURE;
+	}
 
-  return 0;
+	return 0;
 }
 
 int
@@ -261,21 +283,35 @@ client_tcp (const char *serverip, uint16_t server_port, const char *file)
   return 0;
 }
 
-int
-client_microtcp (const char *serverip, uint16_t server_port, const char *file)
+int client_microtcp (const char *serverip, uint16_t server_port, const char *file)
 {
- microtcp_sock_t client = microtcp_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	microtcp_sock_t client = microtcp_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	FILE *fp;
+	client.isServer=0;
+	struct sockaddr_in* server_address;
+	/*server_address->sin_family = AF_INET;
+	server_address->sin_port = htons(server_port);
+	server_address->sin_addr.s_addr=inet_addr(serverip);
+	socklen_t server_address_len=sizeof(struct sockaddr_in);*/
+	fp=fopen(file,"r");
+	if(!fp){
+		perror("Open file for reading");
+		return -EXIT_FAILURE;
+	}
+	struct sockaddr_in sin;
+	memset(&sin,0,sizeof(struct sockaddr_in));
+	sin.sin_family=AF_INET;
+	sin.sin_port=htons(server_port);
+	sin.sin_addr.s_addr=inet_addr(serverip);
+	
 
- client.isServer=0;
- struct sockaddr_in* server_address;
- server_address->sin_family = AF_INET;
- server_address->sin_port = htons(server_port);
- server_address->sin_addr.s_addr=inet_addr(serverip);
- socklen_t server_address_len=sizeof(struct sockaddr_in);
- 
- if(microtcp_connect(&client,(struct sockaddr*) server_address,server_address_len)==-1) return -1;
+	if(microtcp_connect(&client,(struct sockaddr*)&sin,sizeof(struct sockaddr_in))==-1){
+		//perror("TCP connect");
+		return -EXIT_FAILURE;
+	}
+	printf("Starting sending data...\n");
 
- microtcp_shutdown(&client,0);
+	//microtcp_shutdown(&client,0);
 
 }
 

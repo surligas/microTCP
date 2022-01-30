@@ -73,8 +73,9 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                   socklen_t address_len)
 {
         
-        if(socket->state!=LISTEN)
-                return -1;
+	printf("Connecting before first send 1...\n");
+       // if(socket->state!=LISTEN)
+         //       return -1;
         int success_counter=0;
         microtcp_header_t send;
         struct sockaddr* adres=(struct sockaddr*)address;
@@ -87,8 +88,8 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                 socket->recvbuf[i]=0;
         }
 	
+	printf("Connecting before first send...2\n");
 	memcpy(socket->recvbuf,&send,sizeof(microtcp_header_t));
-	
         if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)==-1){
                 perror("Send first packet of 3-way handshake error:");
                 socket->state=INVALID;
@@ -96,7 +97,7 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
             success_counter++;
     	}
 		
-        
+        printf("Connecting before first receive...\n");
         if(recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,adres,&address_len)==-1){
                 perror("Receive from server error:");
                 socket->state=INVALID;
@@ -116,7 +117,10 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
                 socket->state=INVALID;
                 return -1;
         }
+	printf("CLIENT ELABA SYNACK %d\n",receive->control);
+	send.control=ACK;
         memcpy(socket->recvbuf,&send,sizeof(microtcp_header_t));
+	printf("STELNW TO CONTROL: %d\n",send.control);
         if(sendto(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,address_len)==-1){ 	
                 perror("TCP error sending ACK to server");
         }else{
@@ -150,7 +154,7 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 	
 
 	/* HERE WE RECEIVE THE SYN SIGNAL FROM THE CLIENT */
-	
+	printf("Accepting before first receive...\n");
 	/*if recvfrom return -1 error */
 	if(recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,&address_len)==-1){
 		perror("Error receiving SYN from client\n");			
@@ -166,12 +170,12 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 			isSYNReceived=1;
 		}
 	}
-	
 	/* HERE WE SEND THE SYN,ACK SIGNAL BACK TO THE CLIENT */
-
+	printf("SERVER SENDING SYNACK: %d\n",send_header.control);
 	memcpy(socket->recvbuf,&send_header,sizeof(microtcp_header_t));
+printf("Accepting before first send... %d\n",send_header.control);
 	/*if sendto return -1 error*/
-	if(sendto(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,address_len==-1)){
+	if(sendto(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,address_len)==-1){
 		if(send_header.ack_number!=0)perror("Error sending SYN,ACK to client\n");
 		else perror("Error sending ACK=0 to client\n");
 	}else{
@@ -188,11 +192,13 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 	        perror("Error receiving ACK from client\n");
         }else{
 		/* reinitialising recv_header*/
-		free(recv_header);
-		recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+		//free(recv_header);
+		//recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
 		recv_header=(microtcp_header_t*)socket->recvbuf;
         	/*if control is not ACK error */
-        	if(ntohs(recv_header->control)!=ACK){
+		printf("%d equals %d\n",htons(recv_header->control),ACK);
+		//allaksa to htons se ntohs opws to recvfrom panw
+        	if(recv_header->control!=ACK){
         	        perror("Did not receive ACK from client\n");
 	        }else{
 			isACKReceived=1;
