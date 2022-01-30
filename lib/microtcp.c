@@ -405,13 +405,17 @@ int i;
 
 ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
-               int flags)
+               int flags, const struct sockaddr *address, socklen_t address_len)
 {
 	ssize_t bytes_send;
-	if(bytes_send=sendto(socket->sd,buffer,length,flags,NULL,0)==-1){
+	struct sockaddr* adres=(struct sockaddr*)address;
+
+	bytes_send=sendto(socket->sd,buffer,length,flags,adres,address_len);
+	if(bytes_send==-1){
 		perror("Error sending the data");
 		return -1;
 	}
+	printf("%zu\n",bytes_send);
 
 	return bytes_send;
 
@@ -419,24 +423,29 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
 }
 
 ssize_t
-microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
+microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags,
+		const struct sockaddr *address,socklen_t address_len)
 {
 	ssize_t bytes_received;
 	int i=0;
 	microtcp_header_t *header;
 	uint8_t* newbuf;
+	struct sockaddr* adres=(struct sockaddr*)address;
 	
-	
-	if(bytes_received=recvfrom(socket->sd,buffer,length,flags,NULL,NULL)==-1){
+
+	bytes_received=recvfrom(socket->sd,buffer,length,flags,adres,&address_len);
+	if(bytes_received==-1){
 		perror("Error receiving the data");
 		return -1;
 	}
+	printf("%ld\n",bytes_received);
 	newbuf=(uint8_t*)malloc(length);
 	newbuf=(uint8_t*)buffer;
 	header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
-	memcpy(header,&newbuf[sizeof(microtcp_header_t)-1],sizeof(microtcp_header_t));
+	memcpy(header,newbuf,sizeof(microtcp_header_t));
 
-	if(htons(header->control)!=ACK){
+	if(htons(header->control)==ACK){
+		printf("GIWRGHS\n");
 		//actions: fast retransmit
 	}
 	//actions for checksum
@@ -470,4 +479,3 @@ microtcp_header_t initialize(int seq,int ack,int Ack,int Rst,int Syn,int Fin,uin
 
 	return sock;
 }
-
