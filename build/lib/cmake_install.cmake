@@ -1,4 +1,4 @@
-# Install script for directory: /home/csd4416/microTCP/lib
+# Install script for directory: /home/csd4417/microTCP/lib
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
