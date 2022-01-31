@@ -404,11 +404,9 @@ int i;
 }
 
 ssize_t
-microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
-               int flags, const struct sockaddr *address, socklen_t address_len)
+microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int flags)
 {
 	ssize_t bytes_send;
-	struct sockaddr* adres=(struct sockaddr*)address;
     struct sockaddr_in sin; 
     microtcp_header_t *head; 
     
@@ -419,8 +417,6 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
     sin.sin_port=ntohs(head->future_use1);
     sin.sin_addr.s_addr=ntohl(head->future_use2);
     
-    printf("%d , %d, %d\n",head->future_use0,head->future_use1,head->future_use2);
-    printf("%d , %d, %d\n",sin.sin_family,sin.sin_port,sin.sin_addr.s_addr);
 
 	bytes_send=sendto(socket->sd,buffer,length,flags,(struct sockaddr*)&sin,sizeof(struct sockaddr));
 	if(bytes_send==-1){
@@ -434,16 +430,13 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
 }
 
 ssize_t
-microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags,
-		const struct sockaddr *address,socklen_t address_len)
+microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
 	ssize_t bytes_received;
 	int i=0;
 	microtcp_header_t *header;
 	uint8_t* newbuf;
-	struct sockaddr* adres=(struct sockaddr*)address;
-	bytes_received=recvfrom(socket->sd,buffer,length,flags,adres,&address_len);
-    printf("GEIA\n");
+	bytes_received=recvfrom(socket->sd,buffer,length,flags,NULL,0/*(struct sockaddr*)&sin,&len*/);
 	if(bytes_received==-1){
 		perror("Error receiving the data");
 		return -1;
@@ -462,7 +455,7 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags,
 		return -1;
 	}
 
-
+    
 	return bytes_received;
 
 }
@@ -470,7 +463,6 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags,
 
 /* Our own Function(s) */
 
-//
 microtcp_header_t initialize(int seq,int ack,int Ack,int Rst,int Syn,int Fin,uint16_t window,uint32_t data_len,uint32_t future_use0,uint32_t future_use1, uint32_t future_use2,uint32_t checksum ){
 	microtcp_header_t sock;
 

@@ -140,7 +140,7 @@ main (int argc, char **argv)
 
   while(stop_traffic == false) {
     std::this_thread::sleep_for(std::chrono::milliseconds(dpoisson(gen)));
-    microtcp_send(&sock, buffer, BUF_LEN, 0,NULL,0);
+    microtcp_send(&sock, buffer, BUF_LEN, 0);
   }
 
   LOG_INFO("Going to terminate microtcp connection...");

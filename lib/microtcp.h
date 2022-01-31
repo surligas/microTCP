@@ -137,12 +137,10 @@ microtcp_shutdown(microtcp_sock_t *socket, int how);
 
 ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
-               int flags, const struct sockaddr *address,
-                  socklen_t address_len);
+               int flags);
 
 ssize_t
-microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags, const struct sockaddr *address,
-                  socklen_t address_len);
+microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags);
 
 microtcp_header_t initialize(int seq,int ack,int Ack,int Rst,int Syn,int Fin,uint16_t window,uint32_t data_len,uint32_t future_use0,uint32_t future_use1, uint32_t future_use2,uint32_t checksum);
 
