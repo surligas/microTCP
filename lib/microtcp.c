@@ -421,7 +421,6 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
 		perror("Error sending the data");
 		return -1;
 	}
-	printf("%zu\n",bytes_send);
 
 	return bytes_send;
 
@@ -444,14 +443,12 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags,
 		perror("Error receiving the data");
 		return -1;
 	}
-	printf("%ld\n",bytes_received);
 	newbuf=(uint8_t*)malloc(length);
 	newbuf=(uint8_t*)buffer;
 	header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
 	memcpy(header,newbuf,sizeof(microtcp_header_t));
 
-	if(htons(header->control)==ACK){
-		printf("GIWRGHS\n");
+	if(htons(header->control)!=ACK){
 		//actions: fast retransmit
 	}
 	//actions for checksum
