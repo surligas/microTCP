@@ -203,24 +203,10 @@ server_microtcp (uint16_t listen_port, const char *file)
 	}
 
 	clock_gettime (CLOCK_MONOTONIC_RAW, &start_time);
-	while ((received = microtcp_recv(&server, server.recvbuf, CHUNK_SIZE + sizeof(microtcp_header_t), 0,&client_addr,client_addr_len)) > 0) {
- 		written = fwrite (&(server.recvbuf)[sizeof(microtcp_header_t)-1], sizeof(uint8_t), received - sizeof(microtcp_header_t), fp);
-		total_bytes += received;
- 		if (written * sizeof(uint8_t) != (received-sizeof(microtcp_header_t))) {
-   			printf ("Failed to write to the file the"
-           		" amount of data received from the network.\n");
-      			//shutdown (accepted, SHUT_RDWR)
-      			//shutdown (sock, SHUT_RDWR);
-      			close (server.sd);
-      			free (server.recvbuf);
-      			fclose (fp);
-      			return -EXIT_FAILURE;
-    		}
-  	}
-	flag=0;
 	/*allaksa auto, uparxei ena flag to opoio elegxei an to teleutaio mhnuma einai mege8ous
 	  oso enas header kai an to control einai FIN ACK (douleuei apo oso exw dei, grafei pia
 	  sto arxeio apla teleiwnei me xarakthres @^@^@^@^@^@^ gia kapoio logo isws logo shutdown) */
+    flag=0;
 	while ((flag==0)&&(received = microtcp_recv(&server, server.recvbuf, CHUNK_SIZE + sizeof(microtcp_header_t), 0,&client_addr,client_addr_len)) > 0) {
 		tempbuf=(char*)malloc(CHUNK_SIZE);
                 memcpy(tempbuf,&(server.recvbuf)[sizeof(microtcp_header_t)-1],received);
@@ -403,7 +389,7 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
 	  paremene anoixtos o server */
 
 	//Initialising header
-        header=initialize(client.seq_number,client.ack_number,ACK,0,0,FIN,client.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, 0, 0, 0, checksum);
+        header=initialize(client.seq_number,client.ack_number,ACK,0,0,FIN,client.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, sin.sin_family, sin.sin_port, sin.sin_addr.s_addr, checksum);
         //Making buffer
         memcpy(client.recvbuf,&header,sizeof(microtcp_header_t));
 	

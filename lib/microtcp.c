@@ -411,12 +411,18 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
 	struct sockaddr* adres=(struct sockaddr*)address;
     struct sockaddr_in sin; 
     microtcp_header_t *head; 
-    memcpy(head,buffer,sizeof(microtcp_header_t));
-    sin.sin_family=head->future_use0;
-    sin.sin_port=head->future_use1;
-    sin.sin_addr.s_addr=head->future_use2;
     
-	bytes_send=sendto(socket->sd,buffer,length,flags,(struct sockaddr)&sin,sizeof(struct sockaddr_in));
+    memset(&sin,0,sizeof(struct sockaddr_in));
+    head=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+    memcpy(head,buffer,sizeof(microtcp_header_t));
+    sin.sin_family=ntohs(head->future_use0);
+    sin.sin_port=ntohs(head->future_use1);
+    sin.sin_addr.s_addr=ntohl(head->future_use2);
+    
+    printf("%d , %d, %d\n",head->future_use0,head->future_use1,head->future_use2);
+    printf("%d , %d, %d\n",sin.sin_family,sin.sin_port,sin.sin_addr.s_addr);
+
+	bytes_send=sendto(socket->sd,buffer,length,flags,(struct sockaddr*)&sin,sizeof(struct sockaddr));
 	if(bytes_send==-1){
 		perror("Error sending the data");
 		return -1;
@@ -436,9 +442,8 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags,
 	microtcp_header_t *header;
 	uint8_t* newbuf;
 	struct sockaddr* adres=(struct sockaddr*)address;
-	
-
 	bytes_received=recvfrom(socket->sd,buffer,length,flags,adres,&address_len);
+    printf("GEIA\n");
 	if(bytes_received==-1){
 		perror("Error receiving the data");
 		return -1;
@@ -474,9 +479,9 @@ microtcp_header_t initialize(int seq,int ack,int Ack,int Rst,int Syn,int Fin,uin
 	sock.control=htons(Ack|Rst|Syn|Fin);
 	sock.window=htons(window);
 	sock.data_len=htonl(data_len);
-	sock.future_use0=htonl(future_use0);
-	sock.future_use1=htonl(future_use1);
-	sock.future_use2=htonl(future_use2);
+	sock.future_use0=htons(future_use0);
+	sock.future_use1=htons(future_use1);
+	sock.future_use2=(int)htonl(future_use2);
 	sock.checksum=htonl(checksum);
 
 
