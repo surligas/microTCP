@@ -175,7 +175,7 @@ server_microtcp (uint16_t listen_port, const char *file)
 	ssize_t written;
 	ssize_t total_bytes=0;
 	int flag;
-    int check;
+    unsigned int check;
 
 	/*evala auta */
 	char* tempbuf;
@@ -209,20 +209,26 @@ server_microtcp (uint16_t listen_port, const char *file)
 	  oso enas header kai an to control einai FIN ACK (douleuei apo oso exw dei, grafei pia
       sto arxeio apla teleiwnei me xarakthres @^@^@^@^@^@^ gia kapoio logo isws logo shutdown) */
     flag=0;
-    while ((flag==0)&&(received = microtcp_recv(&server, server.recvbuf, CHUNK_SIZE + sizeof(microtcp_header_t), 0)) > 0) {
+    while (flag==0) {
+        received = microtcp_recv(&server, server.recvbuf, CHUNK_SIZE + sizeof(microtcp_header_t), 0);
+        if(received<=0){
+            printf("ERROR RECEIVING\n");
+            break;
+            flag=1;
+        }
         tempbuf=(char*)malloc(CHUNK_SIZE);
         memcpy(tempbuf,&(server.recvbuf)[sizeof(microtcp_header_t)-1],received-sizeof(microtcp_header_t));
-        if(server.recvbuf[sizeof(microtcp_header_t)]==NULL){
-            memcpy(&header,server.recvbuf,sizeof(microtcp_header_t));
+        memcpy(&header,server.recvbuf,sizeof(microtcp_header_t));
+        if(received==sizeof(microtcp_header_t)){
             if(ntohs(header.control)==(FIN|ACK)){
                 flag=1;		//FIN ACK sent
             }
         }else{
             check=crc32(tempbuf,received-sizeof(microtcp_header_t));
-            if(ntohs(header.checksum==check)){
-                printf("Data delivered succesfully: Writing on file... %d %d\n",header.checksum,check);
+            if(ntohl(header.checksum)==check){
+                printf("Data have reached the buffer correctly: Writing on file...\n");
             }else{
-                printf("Unsuccesful deliver of data: header:%d checked:%d\n",header.checksum,check);
+                printf("Unsuccesful deliver of data: header:%d checked:%d\n",ntohl(header.checksum),check);
                 flag=1;
                 break;
             }
@@ -370,7 +376,7 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
       			return -EXIT_FAILURE;
    		}
 		
-		checksum=crc32(buffer,read_items*sizeof(uint8_t));		//calculate checksum
+		checksum=crc32(buffer,read_items);		//calculate checksum
         printf("checksum of sender: %d\n",checksum);
 
 		//Initialising header
