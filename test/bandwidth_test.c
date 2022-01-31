@@ -216,9 +216,9 @@ server_microtcp (uint16_t listen_port, const char *file)
                 flag=1;		//FIN ACK sent
             }
         }else{
-            written = fwrite (tempbuf, sizeof(uint8_t), received, fp);
+            written = fwrite (tempbuf, sizeof(uint8_t), received-sizeof(microtcp_header_t), fp);
             total_bytes += received;
-            if (written != received) {
+            if (written != received-sizeof(microtcp_header_t)) {
                 printf ("Failed to write to the file the"
                         " amount of data received from the network.\n");
                 //shutdown (accepted, SHUT_RDWR);

@@ -1,8 +1,8 @@
-if(NOT EXISTS "/home/csd4416/microTCP/build/install_manifest.txt")
-  message(FATAL_ERROR "Cannot find install manifest: /home/csd4416/microTCP/build/install_manifest.txt")
-endif(NOT EXISTS "/home/csd4416/microTCP/build/install_manifest.txt")
+if(NOT EXISTS "/home/csd4417/microTCP/build/install_manifest.txt")
+  message(FATAL_ERROR "Cannot find install manifest: /home/csd4417/microTCP/build/install_manifest.txt")
+endif(NOT EXISTS "/home/csd4417/microTCP/build/install_manifest.txt")
 
-file(READ "/home/csd4416/microTCP/build/install_manifest.txt" files)
+file(READ "/home/csd4417/microTCP/build/install_manifest.txt" files)
 string(REGEX REPLACE "\n" ";" files "${files}")
 foreach(file ${files})
   message(STATUS "Uninstalling $ENV{DESTDIR}${file}")

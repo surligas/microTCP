@@ -1,4 +1,4 @@
-# Install script for directory: /home/csd4416/microTCP
+# Install script for directory: /home/csd4417/microTCP
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -39,8 +39,8 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/csd4416/microTCP/build/lib/cmake_install.cmake")
-  include("/home/csd4416/microTCP/build/test/cmake_install.cmake")
+  include("/home/csd4417/microTCP/build/lib/cmake_install.cmake")
+  include("/home/csd4417/microTCP/build/test/cmake_install.cmake")
 
 endif()
 
@@ -52,5 +52,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/csd4416/microTCP/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/csd4417/microTCP/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
