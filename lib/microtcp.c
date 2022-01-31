@@ -416,7 +416,9 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
     sin.sin_family=ntohs(head->future_use0);
     sin.sin_port=ntohs(head->future_use1);
     sin.sin_addr.s_addr=ntohl(head->future_use2);
-    
+
+    head->checksum=htons(crc32(buf,length)); 
+    memcpy(buffer,head,sizeof(microtcp_header_t));
 
 	bytes_send=sendto(socket->sd,buffer,length,flags,(struct sockaddr*)&sin,sizeof(struct sockaddr));
 	if(bytes_send==-1){
@@ -441,10 +443,12 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 		perror("Error receiving the data");
 		return -1;
 	}
+    header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+	memcpy(header,newbuf,sizeof(microtcp_header_t));
+    if(header->checksum
+
 	newbuf=(uint8_t*)malloc(length);
 	newbuf=(uint8_t*)buffer;
-	header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
-	memcpy(header,newbuf,sizeof(microtcp_header_t));
 
 	if(htons(header->control)!=ACK){
 		//actions: fast retransmit
