@@ -409,8 +409,14 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,
 {
 	ssize_t bytes_send;
 	struct sockaddr* adres=(struct sockaddr*)address;
-
-	bytes_send=sendto(socket->sd,buffer,length,flags,adres,address_len);
+    struct sockaddr_in sin; 
+    microtcp_header_t *head; 
+    memcpy(head,buffer,sizeof(microtcp_header_t));
+    sin.sin_family=head->future_use0;
+    sin.sin_port=head->future_use1;
+    sin.sin_addr.s_addr=head->future_use2;
+    
+	bytes_send=sendto(socket->sd,buffer,length,flags,(struct sockaddr)&sin,sizeof(struct sockaddr_in));
 	if(bytes_send==-1){
 		perror("Error sending the data");
 		return -1;

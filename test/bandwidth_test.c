@@ -204,7 +204,7 @@ server_microtcp (uint16_t listen_port, const char *file)
  		if (written * sizeof(uint8_t) != (received-sizeof(microtcp_header_t))) {
    			printf ("Failed to write to the file the"
            		" amount of data received from the network.\n");
-      			//shutdown (accepted, SHUT_RDWR);
+      			//shutdown (accepted, SHUT_RDWR)
       			//shutdown (sock, SHUT_RDWR);
       			close (server.sd);
       			free (server.recvbuf);
@@ -346,7 +346,7 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
 		checksum=0;		//calculate checksum
 
 		//Initialising header
-		header=initialize(client.seq_number,client.ack_number,ACK,0,0,0,client.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, 0, 0, 0, checksum);	
+		header=initialize(client.seq_number,client.ack_number,ACK,0,0,0,client.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, sin.sin_family, sin.sin_port, sin.sin_addr.s_addr, checksum);	
 	
 		//Making buffer
 		memcpy(client.recvbuf,&header,sizeof(microtcp_header_t));
