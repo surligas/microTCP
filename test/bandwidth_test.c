@@ -34,6 +34,7 @@
 #include <arpa/inet.h>
 
 /* CHANGES */
+#include "../utils/crc32.h"
 #include <limits.h>
 /* END OF CHANGES */
 
@@ -174,6 +175,7 @@ server_microtcp (uint16_t listen_port, const char *file)
 	ssize_t written;
 	ssize_t total_bytes=0;
 	int flag;
+    int check;
 
 	/*evala auta */
 	char* tempbuf;
@@ -216,6 +218,14 @@ server_microtcp (uint16_t listen_port, const char *file)
                 flag=1;		//FIN ACK sent
             }
         }else{
+            check=crc32(tempbuf,received-sizeof(microtcp_header_t));
+            if(ntohs(header.checksum==check)){
+                printf("Data delivered succesfully: Writing on file... %d %d\n",header.checksum,check);
+            }else{
+                printf("Unsuccesful deliver of data: header:%d checked:%d\n",header.checksum,check);
+                flag=1;
+                break;
+            }
             written = fwrite (tempbuf, sizeof(uint8_t), received-sizeof(microtcp_header_t), fp);
             total_bytes += received;
             if (written != received-sizeof(microtcp_header_t)) {
@@ -360,8 +370,8 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
       			return -EXIT_FAILURE;
    		}
 		
-		checksum=0;		//calculate checksum
-
+		checksum=crc32(buffer,read_items*sizeof(uint8_t));		//calculate checksum
+        printf("checksum of sender: %d\n",checksum);
 
 		//Initialising header
 		header=initialize(client.seq_number,client.ack_number,ACK,0,0,0,client.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, sin.sin_family, sin.sin_port, sin.sin_addr.s_addr, checksum);	
