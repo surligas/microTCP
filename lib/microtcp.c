@@ -410,21 +410,22 @@ ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int flags)
 {
 	ssize_t bytes_send;
-    struct sockaddr_in sin; 
-    microtcp_header_t *head; 
+    struct sockaddr_in sin;
+    microtcp_header_t *head;
 
     memset(&sin,0,sizeof(struct sockaddr_in));
     head=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
     memcpy(head,buffer,sizeof(microtcp_header_t));
-    sin.sin_family=ntohs(head->future_use0);
-    sin.sin_port=ntohs(head->future_use1);
-    sin.sin_addr.s_addr=ntohl(head->future_use2);
-    
-	bytes_send=sendto(socket->sd,buffer,length,flags,(struct sockaddr*)&sin,sizeof(struct sockaddr));
+	
+	    sin.sin_family=ntohs(head->future_use0);
+	    sin.sin_port=ntohs(head->future_use1);
+	    sin.sin_addr.s_addr=ntohl(head->future_use2);
+		bytes_send=sendto(socket->sd,buffer,length,flags,(struct sockaddr*)&sin,sizeof(struct sockaddr));
 	if(bytes_send==-1){
 		perror("Error sending the data");
 		return -1;
 	}
+	printf("\nSending data...\n");
 
 	return bytes_send;
 
@@ -435,20 +436,31 @@ ssize_t
 microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
 	ssize_t bytes_received;
-	int i=0;
+	struct sockaddr_in sin;
+	socklen_t len=sizeof(struct sockaddr);
 	microtcp_header_t *header;
 	uint8_t* newbuf;
-	bytes_received=recvfrom(socket->sd,buffer,length,flags,NULL,0/*(struct sockaddr*)&sin,&len*/);
+
+	printf("\nWaiting to receive data\n");
+	if(length==sizeof(microtcp_header_t)){
+		newbuf=(uint8_t*)malloc(sizeof(uint8_t));
+    		header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+        	memcpy(header,newbuf,sizeof(microtcp_header_t));
+		sin.sin_family=ntohs(header->future_use0);
+    		sin.sin_port=ntohs(header->future_use1);
+    		sin.sin_addr.s_addr=ntohl(header->future_use2);	
+		bytes_received=recvfrom(socket->sd,buffer,length,flags,(struct sockaddr*)&sin,&len);
+	}else{ 
+		bytes_received=recvfrom(socket->sd,buffer,length,flags,NULL,0);
+	}
 	if(bytes_received==-1){
 		perror("Error receiving the data");
 		return -1;
 	}
-
+	
     newbuf=(uint8_t*)malloc(sizeof(uint8_t));
     header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
 	memcpy(header,newbuf,sizeof(microtcp_header_t));
-	newbuf=(uint8_t*)malloc(length);
-	newbuf=(uint8_t*)buffer;
 
 	if(htons(header->control)!=ACK){
 		//actions: fast retransmit

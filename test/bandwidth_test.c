@@ -171,7 +171,7 @@ server_microtcp (uint16_t listen_port, const char *file)
 	socklen_t client_addr_len;
 	struct timespec start_time;
 	struct timespec end_time;
-	int received;
+	int received,sent;
 	ssize_t written;
 	ssize_t total_bytes=0;
 	int flag;
@@ -209,23 +209,29 @@ server_microtcp (uint16_t listen_port, const char *file)
 	  oso enas header kai an to control einai FIN ACK (douleuei apo oso exw dei, grafei pia
       sto arxeio apla teleiwnei me xarakthres @^@^@^@^@^@^ gia kapoio logo isws logo shutdown) */
     flag=0;
-    while ((flag==0)&&(received = microtcp_recv(&server, server.recvbuf, CHUNK_SIZE + sizeof(microtcp_header_t), 0)) > 0) {
-        tempbuf=(char*)malloc(CHUNK_SIZE);
+    while (flag==0) {
+        received = microtcp_recv(&server, server.recvbuf, CHUNK_SIZE + sizeof(microtcp_header_t), 0);
+	if(received<=0){
+		printf("ERROR RECEIVING\n");
+		flag=1;
+		break;
+	}
+	tempbuf=(char*)malloc(CHUNK_SIZE);
         memcpy(tempbuf,&(server.recvbuf)[sizeof(microtcp_header_t)-1],received-sizeof(microtcp_header_t));
-        if(server.recvbuf[sizeof(microtcp_header_t)]==NULL){
+        if(received==sizeof(microtcp_header_t)){
             memcpy(&header,server.recvbuf,sizeof(microtcp_header_t));
             if(ntohs(header.control)==(FIN|ACK)){
+		printf("FIN ACK received\n");
                 flag=1;		//FIN ACK sent
             }
         }else{
             check=crc32(tempbuf,received-sizeof(microtcp_header_t));
-            if(ntohs(header.checksum==check)){
-                printf("Data delivered succesfully: Writing on file... %d %d\n",header.checksum,check);
-            }else{
-                printf("Unsuccesful deliver of data: header:%d checked:%d\n",header.checksum,check);
+		
+	    if(ntohs(header.checksum!=check)){
+		printf("Unsuccesful deliver of data: header:%d checked:%d\n",header.checksum,check);
                 flag=1;
-                break;
-            }
+            }else{
+		printf("Data delivered succesfully: Writing on file... %d %d\n",header.checksum,check);		
             written = fwrite (tempbuf, sizeof(uint8_t), received-sizeof(microtcp_header_t), fp);
             total_bytes += received;
             if (written != received-sizeof(microtcp_header_t)) {
@@ -238,7 +244,21 @@ server_microtcp (uint16_t listen_port, const char *file)
                 fclose (fp);
                 return -EXIT_FAILURE;
             }
+	  }
         }
+	server.ack_number=header.seq_number + received;
+		if(flag==0){
+                	header=initialize(server.seq_number,server.ack_number,ACK,0,0,0,server.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, 0,0,0,0);
+                }else{
+			header=initialize(server.seq_number,server.ack_number,0,0,0,0,server.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, 0,0,0,0);	
+		}
+		memcpy(server.recvbuf,&header,sizeof(microtcp_header_t));
+                sent=sendto(server.sd,server.recvbuf,sizeof(microtcp_header_t),0,&client_addr,client_addr_len);
+                if(sent==sizeof(microtcp_header_t)&&(ntohs(header.control)==ACK)){
+                        printf("Sent ACK succesfully!\n");
+                }else{
+                        printf("Error sending ACK to client!\n");
+                }
     }
     clock_gettime (CLOCK_MONOTONIC_RAW, &end_time);
     print_statistics (total_bytes, start_time, end_time);
@@ -335,7 +355,7 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
 	struct sockaddr_in* server_address;
 	struct sockaddr_in sin;
 	size_t read_items=0;
-	ssize_t data_sent;
+	ssize_t data_sent,data_received;
 	microtcp_header_t header;
 	int checksum;
 	uint8_t* buffer;
@@ -390,6 +410,17 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
       			fclose (fp);
      			return -EXIT_FAILURE;
     		}
+		header=initialize(client.seq_number,client.ack_number,ACK,0,0,0,client.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, sin.sin_family, sin.sin_port, sin.sin_addr.s_addr,checksum);
+                //Making buffer
+                memcpy(client.recvbuf,&header,sizeof(microtcp_header_t));
+		
+		data_received=microtcp_recv(&client,client.recvbuf,sizeof(microtcp_header_t),0);
+		memcpy(&header,client.recvbuf,sizeof(microtcp_header_t));
+		if(data_received==sizeof(microtcp_header_t)&&(ntohs(header.control)==ACK)){
+                        printf("Sent ACK succesfully!\n");
+                }else{
+                        printf("Error receiving ACK from server!\n");
+                }
 
   	}
 
