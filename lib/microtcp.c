@@ -43,8 +43,8 @@ microtcp_socket (int domain, int type, int protocol)
 	}
 
 	s1.state = UNKNOWN;
-	s1.init_win_size = MICROTCP_WIN_SIZE;
-	s1.curr_win_size = MICROTCP_WIN_SIZE;
+	s1.init_win_size = MICROTCP_INIT_CWND;
+	s1.curr_win_size = MICROTCP_INIT_CWND;
 	s1.ssthresh = MICROTCP_INIT_SSTHRESH;
 	s1.cwnd = MICROTCP_INIT_CWND;
 	s1.recvbuf = (uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t));
@@ -80,7 +80,7 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
         microtcp_header_t *receive=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
         socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN); 
         //initializing the header (to be sent to client)of microtcp to start the 3-way handshake
-	send=initialize(rand()%999+1,0,0,0,SYN,0,0,0,0,0,0,0);
+	send=initialize(rand()%999+1,0,0,0,SYN,0,MICROTCP_INIT_CWND,0,0,0,0,0);
         
         for(int i=0;i<MICROTCP_RECVBUF_LEN;i++){
                 socket->recvbuf[i]=0;
@@ -102,7 +102,7 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
 		receive=(microtcp_header_t*)socket->recvbuf;
 		//check if receive was: a SYNACK,acknum=send.seqnumber+1
                 if((ntohs(receive->control)==(SYN|ACK))&&(receive->ack_number==send.seq_number+1)){	  	
-				send=initialize(send.seq_number+1,ntohl(receive->seq_number+1),ACK,0,0,0,0,0,0,0,0,0);
+				send=initialize(send.seq_number+1,ntohl(receive->seq_number+1),ACK,0,0,0,MICROTCP_WIN_SIZE,0,0,0,0,0);
                                 success_counter++;
                 }else{
                         socket->state=INVALID;
@@ -165,7 +165,7 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
 		}else{
 			/* That means that we received the SYN from the client
 			   so we change the send_header */
-			send_header=initialize(rand()%999+1,ntohl(recv_header->seq_number+1),ACK,0,SYN,0,0,0,0,0,0,0);
+			send_header=initialize(rand()%999+1,ntohl(recv_header->seq_number+1),ACK,0,SYN,0,MICROTCP_WIN_SIZE,0,0,0,0,0);
 			isSYNReceived=1;
 		}
 	}
@@ -256,7 +256,6 @@ int i;
                         return -1;
                 }
 
-		printf("GEIA\n");
 
 		/* Client receives ACK from server */
 		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
