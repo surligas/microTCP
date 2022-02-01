@@ -231,7 +231,7 @@ server_microtcp (uint16_t listen_port, const char *file)
                 printf("Unsuccesful deliver of data: header:%d checked:%d\n",ntohl(header.checksum),check);
                 flag=1;
             }else{
-                printf("Data delivered succesfully: Writing on file... %d %d\n",ntohl(header.checksum),check);		
+                printf("Data delivered succesfully: Writing on file...\n");		
                 written = fwrite (tempbuf, sizeof(uint8_t), received-sizeof(microtcp_header_t), fp);
                 total_bytes += received;
                 if (written != received-sizeof(microtcp_header_t)) {
@@ -246,18 +246,16 @@ server_microtcp (uint16_t listen_port, const char *file)
                 }
             }
         }
-        server.ack_number=header.seq_number + received;
-        if(flag==0){
-            header=initialize(server.seq_number,server.ack_number,ACK,0,0,0,server.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, 0,0,0,0);
-        }else{
-            header=initialize(server.seq_number,server.ack_number,0,0,0,0,server.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, 0,0,0,0);	
-        }
+
+        //server.ack_number=header.seq_number + received;
+
+        header=initialize(server.seq_number,server.ack_number,ACK,0,0,0,server.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, 0,0,0,0);
         memcpy(server.recvbuf,&header,sizeof(microtcp_header_t));
         sent=sendto(server.sd,server.recvbuf,sizeof(microtcp_header_t),0,&client_addr,client_addr_len);
         if(sent==sizeof(microtcp_header_t)&&(ntohs(header.control)==ACK)){
-            printf("Sent ACK succesfully!\n");
+            printf("Sent ACK succesfully!\n\n");
         }else{
-            printf("Error sending ACK to client!\n");
+            printf("Error sending ACK to client!\n\n");
         }
     }
     clock_gettime (CLOCK_MONOTONIC_RAW, &end_time);
@@ -391,7 +389,7 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
         }
 
         checksum=crc32(buffer,read_items*sizeof(uint8_t));		//calculate checksum
-        printf("checksum of sender: %d\n",checksum);
+        //printf("checksum of sender: %d\n",checksum);
 
         //Initialising header
         header=initialize(client.seq_number,client.ack_number,ACK,0,0,0,client.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, sin.sin_family, sin.sin_port, sin.sin_addr.s_addr, checksum);	
@@ -424,7 +422,7 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
 
     }
 
-    printf ("Data sent. Terminating...\n");
+    printf ("\nData sent. Terminating...\n");
 
     /*pros8esa allh mia send sto telos h opoia stelnei mono ena header FIN ACK, auth eleipe kai
       paremene anoixtos o server */

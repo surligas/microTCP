@@ -419,6 +419,8 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
 	    sin.sin_port=ntohs(head.future_use1);
 	    sin.sin_addr.s_addr=ntohl(head.future_use2);
 		bytes_send=sendto(socket->sd,buffer,length,flags,(struct sockaddr*)&sin,sizeof(struct sockaddr));
+	
+
 	if(bytes_send==-1){
 		perror("Error sending the data");
 		return -1;
@@ -439,6 +441,14 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 	uint8_t* newbuf;
 
 	printf("\nWaiting to receive data\n");
+
+	struct timeval timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = MICROTCP_ACK_TIMEOUT_US;
+	if (setsockopt(socket->sd , SOL_SOCKET ,SO_RCVTIMEO , &timeout ,sizeof(struct timeval)) < 0) {
+		perror("setsockopt");
+	}
+
 	if(length==sizeof(microtcp_header_t)){
 		newbuf=(uint8_t*)malloc(sizeof(uint8_t));
     		header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
