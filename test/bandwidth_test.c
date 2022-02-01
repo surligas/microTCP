@@ -217,7 +217,7 @@ server_microtcp (uint16_t listen_port, const char *file)
             break;
         }
         tempbuf=(char*)malloc(CHUNK_SIZE);
-        memcpy(tempbuf,&(server.recvbuf)[sizeof(microtcp_header_t)-1],received-sizeof(microtcp_header_t));
+        memcpy(tempbuf,&(server.recvbuf)[sizeof(microtcp_header_t)],received-sizeof(microtcp_header_t));
         if(received==sizeof(microtcp_header_t)){
             memcpy(&header,server.recvbuf,sizeof(microtcp_header_t));
             if(ntohs(header.control)==(FIN|ACK)){
@@ -227,11 +227,11 @@ server_microtcp (uint16_t listen_port, const char *file)
         }else{
             memcpy(&header,server.recvbuf,sizeof(microtcp_header_t));
             check=crc32(tempbuf,received-sizeof(microtcp_header_t));
-            if(ntohl(header.checksum!=check)){
+            if(ntohl(header.checksum)!=check){
                 printf("Unsuccesful deliver of data: header:%d checked:%d\n",ntohl(header.checksum),check);
                 flag=1;
             }else{
-                printf("Data delivered succesfully: Writing on file... %d %d\n",header.checksum,check);		
+                printf("Data delivered succesfully: Writing on file... %d %d\n",ntohl(header.checksum),check);		
                 written = fwrite (tempbuf, sizeof(uint8_t), received-sizeof(microtcp_header_t), fp);
                 total_bytes += received;
                 if (written != received-sizeof(microtcp_header_t)) {
@@ -398,7 +398,7 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
 
         //Making buffer
         memcpy(client.recvbuf,&header,sizeof(microtcp_header_t));
-        memcpy(&(client.recvbuf)[sizeof(microtcp_header_t)-1],buffer,CHUNK_SIZE);
+        memcpy(&(client.recvbuf)[sizeof(microtcp_header_t)],buffer,CHUNK_SIZE);
 
         data_sent = microtcp_send (&client, client.recvbuf, sizeof(microtcp_header_t)+read_items * sizeof(uint8_t),0);
         if ((data_sent-sizeof(microtcp_header_t)) != read_items * sizeof(uint8_t)) {

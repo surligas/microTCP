@@ -411,22 +411,19 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
 {
 	ssize_t bytes_send;
     struct sockaddr_in sin;
-    microtcp_header_t *head;
+    microtcp_header_t head;
 
     memset(&sin,0,sizeof(struct sockaddr_in));
-    head=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
-    memcpy(head,buffer,sizeof(microtcp_header_t));
-	
-	    sin.sin_family=ntohs(head->future_use0);
-	    sin.sin_port=ntohs(head->future_use1);
-	    sin.sin_addr.s_addr=ntohl(head->future_use2);
+    memcpy(&head,buffer,sizeof(microtcp_header_t));
+	    sin.sin_family=ntohs(head.future_use0);
+	    sin.sin_port=ntohs(head.future_use1);
+	    sin.sin_addr.s_addr=ntohl(head.future_use2);
 		bytes_send=sendto(socket->sd,buffer,length,flags,(struct sockaddr*)&sin,sizeof(struct sockaddr));
 	if(bytes_send==-1){
 		perror("Error sending the data");
 		return -1;
 	}
 	printf("\nSending data...\n");
-
 	return bytes_send;
 
 			
@@ -490,7 +487,6 @@ microtcp_header_t initialize(int seq,int ack,int Ack,int Rst,int Syn,int Fin,uin
 	sock.future_use1=htons(future_use1);
 	sock.future_use2=(int)htonl(future_use2);
 	sock.checksum=htonl(checksum);
-
 
 	return sock;
 }
