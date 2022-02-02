@@ -409,43 +409,38 @@ int i;
 ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int flags)
 {
-	ssize_t bytes_send,bytes_received;
+	ssize_t bytes_send;
     struct sockaddr_in sin;
-	socklen_t len=sizeof(struct sockaddr);
     microtcp_header_t head;
 	uint8_t* newbuf,*newbuf2;	
 	int checksum;
 
-	/* setting the address*/
 	memset(&sin,0,sizeof(struct sockaddr_in));
     	memcpy(&head,buffer,sizeof(microtcp_header_t));
             sin.sin_family=ntohs(head.future_use0);
             sin.sin_port=ntohs(head.future_use1);
             sin.sin_addr.s_addr=ntohl(head.future_use2);
 
-	/*copying the data segment to newbuf */
-	newbuf2=(uint8_t*)buffer;
 	newbuf=(uint8_t*)malloc(length-sizeof(microtcp_header_t));
-	memcpy(newbuf,&(newbuf2)[sizeof(microtcp_header_t)],length-sizeof(microtcp_header_t));
-	
-	/*calculation of checksum */
-	if(length!=sizeof(microtcp_header_t)){
-		checksum=crc32(newbuf,length);              //calculate checksum
-        	printf("checksum of sender: %d\n",checksum);
-		head.checksum=htonl(checksum);
-	}
+	memcpy(newbuf,&(buffer)[sizeof(microtcp_header_t)],length-sizeof(microtcp_header_t));
 	
 
-	/* copying both the header and data segment to newbuf2 to send */
+	checksum=crc32(newbuf,length);              //calculate checksum
+        printf("checksum of sender: %d\n",checksum);
+	head.checksum=htonl(checksum);
+
 	newbuf2=(uint8_t*)malloc(length);
 	memcpy(newbuf2,&head,sizeof(microtcp_header_t));
 	memcpy(&(newbuf)[sizeof(microtcp_header_t)],newbuf,length-sizeof(microtcp_header_t));	
 
-	if(ntohs(head.control)==(FIN|ACK)){
-		printf("Sending FIN ACK\n");
-	}
 
-	bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
+/*Original Send starts here */
+    //memset(&sin,0,sizeof(struct sockaddr_in));
+   // memcpy(&head,buffer,sizeof(microtcp_header_t));
+	//    sin.sin_family=ntohs(head.future_use0);
+	 //   sin.sin_port=ntohs(head.future_use1);
+	  //  sin.sin_addr.s_addr=ntohl(head.future_use2);
+		bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,sizeof(struct sockaddr));
 	
 
 	if(bytes_send==-1){
@@ -453,14 +448,16 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
 		return -1;
 	}
 	printf("\nSending data...\n");
+/* Original Send ends here */
 
-	/* receiving ACK if the data are sent correctly */
-        bytes_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)&sin,&len);
-        memcpy(&head,socket->recvbuf,sizeof(microtcp_header_t));
-        if(bytes_received==sizeof(microtcp_header_t)&&(ntohs(head.control)==ACK)){
-            printf("ACK received succesfully!\n");
+	header=initialize(client.seq_number,client.ack_number,ACK,0,0,0,client.curr_win_size,sizeof(microtcp_header_t), sin.sin_family, sin.sin_port, sin.sin_addr.s_addr,0);
+        memcpy(socket->recvbuf,&header,sizeof(microtcp_header_t));
+
+        data_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,);
+        memcpy(&header,client.recvbuf,sizeof(microtcp_header_t));
+        if(data_received==sizeof(microtcp_header_t)&&(ntohs(header.control)==ACK)){
+            printf("Sent ACK succesfully!\n");
         }else{
-		
             printf("Error receiving ACK from server!\n");
         }
 
@@ -473,12 +470,11 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
 ssize_t
 microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
-	ssize_t bytes_received,bytes_sent;
+	ssize_t bytes_received;
 	struct sockaddr_in sin;
 	socklen_t len=sizeof(struct sockaddr);
 	microtcp_header_t *header;
-	uint8_t* newbuf,*newbuf2;
-	int checksum;
+	uint8_t* newbuf;
 
 	printf("\nWaiting to receive data\n");
 
@@ -489,41 +485,33 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 		perror("setsockopt");
 	}
 
-	/* sending */	
-	bytes_received=recvfrom(socket->sd,buffer,length,flags,NULL,0/*(struct sockaddr*)&sin,&len*/);
-	if(bytes_received<=0){
+	if(length==sizeof(microtcp_header_t)){
+		newbuf=(uint8_t*)malloc(sizeof(uint8_t));
+    		header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+        	memcpy(header,newbuf,sizeof(microtcp_header_t));
+		sin.sin_family=ntohs(header->future_use0);
+    		sin.sin_port=ntohs(header->future_use1);
+    		sin.sin_addr.s_addr=ntohl(header->future_use2);	
+		bytes_received=recvfrom(socket->sd,buffer,length,flags,(struct sockaddr*)&sin,&len);
+	}else{ 
+		bytes_received=recvfrom(socket->sd,buffer,length,flags,NULL,0);
+	}
+	if(bytes_received==-1){
 		perror("Error receiving the data");
 		return -1;
 	}
 	
-    	newbuf=(uint8_t*)buffer;
-    	header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+    newbuf=(uint8_t*)malloc(sizeof(uint8_t));
+    header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
 	memcpy(header,newbuf,sizeof(microtcp_header_t));
 
 	if(htons(header->control)!=ACK){
 		//actions: fast retransmit
 	}
-	
-	if(bytes_received!=sizeof(microtcp_header_t)){		/* if data were sent */
-		/* Copying the data segment to newbuf2 */
-		newbuf2=(char*)malloc(bytes_received-sizeof(microtcp_header_t));
-        	memcpy(newbuf2,&(newbuf)[sizeof(microtcp_header_t)],bytes_received-sizeof(microtcp_header_t));
-		/* Calculating checksum */
-		checksum=crc32(newbuf2,bytes_received-sizeof(microtcp_header_t));
-		if(ntohl(header->checksum)!=checksum){
-	                printf("Unsuccesful deliver of data: header:%d checked:%d\n",header->checksum,checksum);
-				return -1;
-	        }else{
-	                printf("Data delivered succesfully: Writing on file...\n");
-			buffer=newbuf2;
-			return bytes_received;
-		}
-	}else{
-		/* If no data sent, check for FIN ACK */
-		if(htons(header->control)==(FIN|ACK)){
-			socket->state=CLOSING_BY_PEER;
-			return -1;
-		}
+	//actions for checksum
+	if(htons(header->control)==(FIN|ACK)){
+		socket->state=CLOSING_BY_PEER;
+		return -1;
 	}
 
 	return bytes_received;
