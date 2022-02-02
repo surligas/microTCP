@@ -251,7 +251,7 @@ server_microtcp (uint16_t listen_port, const char *file)
 		flag=1;
 	}
         header=initialize(server.seq_number,server.ack_number,ACK,0,0,0,server.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, 0,0,0,0);
-        memcpy(server.recvbuf,&header,sizeof(microtcp_header_t));
+        memcpy(server.recvbuf,&header,sizeof(microtcp_header_t)); 
         sent=sendto(server.sd,server.recvbuf,sizeof(microtcp_header_t),0,&client_addr,client_addr_len);
         if(sent==sizeof(microtcp_header_t)&&(ntohs(header.control)==ACK)){
        	     printf("Sent ACK succesfully!\n\n");
