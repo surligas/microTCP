@@ -428,10 +428,11 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
     newbuf=(uint8_t*)malloc(length-sizeof(microtcp_header_t));
     memcpy(newbuf,&(newbuf2)[sizeof(microtcp_header_t)],length-sizeof(microtcp_header_t));
 
+    printf("SENDER MESSAGE:%s LENGTH= %d\n",newbuf);
     /*calculation of checksum */
     if(length!=sizeof(microtcp_header_t)){
-        checksum=crc32(newbuf,length);              //calculate checksum
-        printf("checksum of sender: %d\n",checksum);
+        checksum=crc32(newbuf,length-sizeof(microtcp_header_t));              //calculate checksum
+        printf("checksum of sender: %d\n",htonl(checksum));
         head.checksum=htonl(checksum);
     }
 
@@ -477,7 +478,8 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
     struct sockaddr_in sin;
     socklen_t len=sizeof(struct sockaddr);
     microtcp_header_t *header;
-    uint8_t* newbuf,*newbuf2;
+    uint8_t *newbuf;
+    uint8_t *newbuf2;
     int checksum;
 
     printf("\nWaiting to receive data\n");
@@ -495,7 +497,6 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
         perror("Error receiving the data");
         return -1;
     }
-
     newbuf=(uint8_t*)buffer;
     header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
     memcpy(header,newbuf,sizeof(microtcp_header_t));
@@ -503,15 +504,16 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
     if(htons(header->control)!=ACK){
         //actions: fast retransmit
     }
-
     if(bytes_received!=sizeof(microtcp_header_t)){		/* if data were sent */
         /* Copying the data segment to newbuf2 */
-        newbuf2=(char*)malloc(bytes_received-sizeof(microtcp_header_t));
+        newbuf2=(uint8_t*)malloc(bytes_received-sizeof(microtcp_header_t));
+        printf("newbuf EINAI %s\n",newbuf);
         memcpy(newbuf2,&(newbuf)[sizeof(microtcp_header_t)],bytes_received-sizeof(microtcp_header_t));
+        printf("newbuf2 MPIKA %s\n",newbuf2);
         /* Calculating checksum */
         checksum=crc32(newbuf2,bytes_received-sizeof(microtcp_header_t));
         if(ntohl(header->checksum)!=checksum){
-            printf("Unsuccesful deliver of data: header:%d checked:%d\n",header->checksum,checksum);
+            printf("Unsuccesful deliver of data: header:%d checked:%d\n",htonl(header->checksum),checksum);
             return -1;
         }else{
             printf("Data delivered succesfully: Writing on file...\n");
