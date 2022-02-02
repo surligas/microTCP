@@ -357,7 +357,7 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
     size_t read_items=0;
     ssize_t data_sent,data_received;
     microtcp_header_t header;
-    int checksum;
+    uint32_t checksum;
     uint8_t* buffer;
 
     fp=fopen(file,"r");
