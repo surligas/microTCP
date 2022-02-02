@@ -30,186 +30,186 @@
 /* our own functions*/
 microtcp_header_t initialize(int seq,int ack,int Ack,int Rst,int Syn,int Fin,uint16_t window,uint32_t data_len,uint32_t future_use0,uint32_t future_use1, uint32_t future_use2,uint32_t checksum );
 
-microtcp_sock_t
+    microtcp_sock_t
 microtcp_socket (int domain, int type, int protocol)
 {
 
- 	microtcp_sock_t s1;
+    microtcp_sock_t s1;
 
-	if ( ( s1.sd = socket(domain ,type,protocol ) ) == -1){
-		perror("opening TCP listening socket\n");
-		s1.state = INVALID;
-		return s1;
-	}
+    if ( ( s1.sd = socket(domain ,type,protocol ) ) == -1){
+        perror("opening TCP listening socket\n");
+        s1.state = INVALID;
+        return s1;
+    }
 
-	s1.state = UNKNOWN;
-	s1.init_win_size = MICROTCP_INIT_CWND;
-	s1.curr_win_size = MICROTCP_INIT_CWND;
-	s1.ssthresh = MICROTCP_INIT_SSTHRESH;
-	s1.cwnd = MICROTCP_INIT_CWND;
-	s1.recvbuf = (uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t));
+    s1.state = UNKNOWN;
+    s1.init_win_size = MICROTCP_INIT_CWND;
+    s1.curr_win_size = MICROTCP_INIT_CWND;
+    s1.ssthresh = MICROTCP_INIT_SSTHRESH;
+    s1.cwnd = MICROTCP_INIT_CWND;
+    s1.recvbuf = (uint8_t*)malloc(MICROTCP_RECVBUF_LEN*sizeof(uint8_t));
 
-	return s1;
+    return s1;
 
 }
 
-int
+    int
 microtcp_bind (microtcp_sock_t *socket, const struct sockaddr *address,
-               socklen_t address_len)
+        socklen_t address_len)
 {
-	int b;
-	if(socket->state==INVALID) return -1;
-	if(b=bind(socket->sd,address,address_len)==-1){
-		perror("TCP bind\n");
-		socket->state=INVALID;
-	}else{
-		socket->state=LISTEN;
-	}
-	return b;
+    int b;
+    if(socket->state==INVALID) return -1;
+    if(b=bind(socket->sd,address,address_len)==-1){
+        perror("TCP bind\n");
+        socket->state=INVALID;
+    }else{
+        socket->state=LISTEN;
+    }
+    return b;
 }
 
-int
+    int
 microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
-                  socklen_t address_len)
+        socklen_t address_len)
 {
-        
-	printf("Connecting before first send...\n");
-        int success_counter=0;
-        microtcp_header_t send;
-        struct sockaddr* adres=(struct sockaddr*)address;
-        microtcp_header_t *receive=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
-        socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN); 
-        //initializing the header (to be sent to client)of microtcp to start the 3-way handshake
-	send=initialize(rand()%999+1,0,0,0,SYN,0,MICROTCP_INIT_CWND,0,0,0,0,0);
-        
-        for(int i=0;i<MICROTCP_RECVBUF_LEN;i++){
-                socket->recvbuf[i]=0;
-        }
-	
-	memcpy(socket->recvbuf,&send,sizeof(microtcp_header_t));
-        if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)==-1){
-                perror("Send first packet of 3-way handshake error:");
-                socket->state=INVALID;
-	}else{
-            success_counter++;
-    	}
-	
-	printf("Initiating 3-way handshake...\n");	
-        if(recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,adres,&address_len)==-1){
-                perror("Receive from server error:");
-                socket->state=INVALID;
-        }else{
-		receive=(microtcp_header_t*)socket->recvbuf;
-		//check if receive was: a SYNACK,acknum=send.seqnumber+1
-                if((ntohs(receive->control)==(SYN|ACK))&&(receive->ack_number==send.seq_number+1)){	  	
-				send=initialize(send.seq_number+1,ntohl(receive->seq_number+1),ACK,0,0,0,MICROTCP_WIN_SIZE,0,0,0,0,0);
-                                success_counter++;
-                }else{
-                        socket->state=INVALID;
-                        perror("Receiving SYN_ACK signal error");
-                }
-        }
-        if(success_counter!=2){
-                printf("Error at the SYN-ACK signal transmission\n");
-                socket->state=INVALID;
-                return -1;
-        }
-        memcpy(socket->recvbuf,&send,sizeof(microtcp_header_t));
-        if(sendto(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,address_len)==-1){ 	
-                perror("TCP error sending ACK to server");
-        }else{
-                success_counter++;
 
+    printf("Connecting before first send...\n");
+    int success_counter=0;
+    microtcp_header_t send;
+    struct sockaddr* adres=(struct sockaddr*)address;
+    microtcp_header_t *receive=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+    socket->recvbuf=(uint8_t*)malloc(MICROTCP_RECVBUF_LEN); 
+    //initializing the header (to be sent to client)of microtcp to start the 3-way handshake
+    send=initialize(rand()%999+1,0,0,0,SYN,0,MICROTCP_INIT_CWND,0,0,0,0,0);
+
+    for(int i=0;i<MICROTCP_RECVBUF_LEN;i++){
+        socket->recvbuf[i]=0;
+    }
+
+    memcpy(socket->recvbuf,&send,sizeof(microtcp_header_t));
+    if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)==-1){
+        perror("Send first packet of 3-way handshake error:");
+        socket->state=INVALID;
+    }else{
+        success_counter++;
+    }
+
+    printf("Initiating 3-way handshake...\n");	
+    if(recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,adres,&address_len)==-1){
+        perror("Receive from server error:");
+        socket->state=INVALID;
+    }else{
+        receive=(microtcp_header_t*)socket->recvbuf;
+        //check if receive was: a SYNACK,acknum=send.seqnumber+1
+        if((ntohs(receive->control)==(SYN|ACK))&&(receive->ack_number==send.seq_number+1)){	  	
+            send=initialize(send.seq_number+1,ntohl(receive->seq_number+1),ACK,0,0,0,MICROTCP_WIN_SIZE,0,0,0,0,0);
+            success_counter++;
+        }else{
+            socket->state=INVALID;
+            perror("Receiving SYN_ACK signal error");
         }
-        if(success_counter!=3){
-                socket->state=INVALID;
-                return -1;
-        }
-        socket->state=ESTABLISHED;
-	printf("\n3-way handshake achieved!\nConnection established!\n\n");
-	
-	socket->seq_number=1;
-	socket->ack_number=1;
-        return socket->sd;
-	                   
-	
+    }
+    if(success_counter!=2){
+        printf("Error at the SYN-ACK signal transmission\n");
+        socket->state=INVALID;
+        return -1;
+    }
+    memcpy(socket->recvbuf,&send,sizeof(microtcp_header_t));
+    if(sendto(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,address_len)==-1){ 	
+        perror("TCP error sending ACK to server");
+    }else{
+        success_counter++;
+
+    }
+    if(success_counter!=3){
+        socket->state=INVALID;
+        return -1;
+    }
+    socket->state=ESTABLISHED;
+    printf("\n3-way handshake achieved!\nConnection established!\n\n");
+
+    socket->seq_number=1;
+    socket->ack_number=1;
+    return socket->sd;
+
+
 }
 
-int
+    int
 microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
-                 socklen_t address_len)
+        socklen_t address_len)
 {
 
-	microtcp_header_t* recv_header;
-	microtcp_header_t send_header;
-	int isSYNReceived=0;
-	int isSYNACKSent=0;
-	int isACKReceived=0;
+    microtcp_header_t* recv_header;
+    microtcp_header_t send_header;
+    int isSYNReceived=0;
+    int isSYNACKSent=0;
+    int isACKReceived=0;
 
-	if(socket->state!=LISTEN)
- 	       return -1;
-	
-	recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+    if(socket->state!=LISTEN)
+        return -1;
 
-    	srand(time(0));
-	
+    recv_header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
 
-	/* HERE WE RECEIVE THE SYN SIGNAL FROM THE CLIENT */
-	printf("Accepting before first receive...\n");
-	/*if recvfrom return -1 error */
-	if(recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,&address_len)==-1){
-		perror("Error receiving SYN from client\n");			
-	}else{
-		memcpy(recv_header,socket->recvbuf,sizeof(microtcp_header_t));
-		/*if control is not SYN error */
-		if(ntohs(recv_header->control)!=SYN){
-			perror("Connection did not start with SYN from client\n");
-		}else{
-			/* That means that we received the SYN from the client
-			   so we change the send_header */
-			send_header=initialize(rand()%999+1,ntohl(recv_header->seq_number+1),ACK,0,SYN,0,MICROTCP_WIN_SIZE,0,0,0,0,0);
-			isSYNReceived=1;
-		}
-	}
-	/* HERE WE SEND THE SYN,ACK SIGNAL BACK TO THE CLIENT */
-	memcpy(socket->recvbuf,&send_header,sizeof(microtcp_header_t));
-	/*if sendto return -1 error*/
-	if(sendto(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,address_len)==-1){
-		if(send_header.ack_number!=0)perror("Error sending SYN,ACK to client\n");
-		else perror("Error sending ACK=0 to client\n");
-	}else{
-		isSYNACKSent=1;
-	}
-	
-	/* if SYN was not received or/and SYN,ACK was not sent */
-	if(isSYNReceived*isSYNACKSent==0) return -1;
-	
-	/* HERE WE RECEIVE THE ACK SIGNAL FROM THE CLIENT */
+    srand(time(0));
 
-	/*if recvfrom return -1 error */
-	if(recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,&address_len)==-1){
-	        perror("Error receiving ACK from client\n");
+
+    /* HERE WE RECEIVE THE SYN SIGNAL FROM THE CLIENT */
+    printf("Accepting before first receive...\n");
+    /*if recvfrom return -1 error */
+    if(recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,&address_len)==-1){
+        perror("Error receiving SYN from client\n");			
+    }else{
+        memcpy(recv_header,socket->recvbuf,sizeof(microtcp_header_t));
+        /*if control is not SYN error */
+        if(ntohs(recv_header->control)!=SYN){
+            perror("Connection did not start with SYN from client\n");
         }else{
-		memcpy(recv_header,socket->recvbuf,sizeof(microtcp_header_t));
-        	/*if control is not ACK error */
-        	if(htons(recv_header->control)!=ACK){
-        	        perror("Did not receive ACK from client\n");
-	        }else{
-			isACKReceived=1;
-		}
-	}
-	/* if ACK was not received */
-	if(isACKReceived==0)
-            return -1;
-	/* if ACK was received, SUCCESS*/
-	free(recv_header);
-        socket->state=ESTABLISHED;
-	printf("\n3-way handshake achieved!\nConnection established!\n\n");
+            /* That means that we received the SYN from the client
+               so we change the send_header */
+            send_header=initialize(rand()%999+1,ntohl(recv_header->seq_number+1),ACK,0,SYN,0,MICROTCP_WIN_SIZE,0,0,0,0,0);
+            isSYNReceived=1;
+        }
+    }
+    /* HERE WE SEND THE SYN,ACK SIGNAL BACK TO THE CLIENT */
+    memcpy(socket->recvbuf,&send_header,sizeof(microtcp_header_t));
+    /*if sendto return -1 error*/
+    if(sendto(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,address_len)==-1){
+        if(send_header.ack_number!=0)perror("Error sending SYN,ACK to client\n");
+        else perror("Error sending ACK=0 to client\n");
+    }else{
+        isSYNACKSent=1;
+    }
 
-	socket->seq_number=1;
-	socket->ack_number=1;
-        return 0;
-    
+    /* if SYN was not received or/and SYN,ACK was not sent */
+    if(isSYNReceived*isSYNACKSent==0) return -1;
+
+    /* HERE WE RECEIVE THE ACK SIGNAL FROM THE CLIENT */
+
+    /*if recvfrom return -1 error */
+    if(recvfrom(socket->sd,socket->recvbuf,MICROTCP_RECVBUF_LEN,0,address,&address_len)==-1){
+        perror("Error receiving ACK from client\n");
+    }else{
+        memcpy(recv_header,socket->recvbuf,sizeof(microtcp_header_t));
+        /*if control is not ACK error */
+        if(htons(recv_header->control)!=ACK){
+            perror("Did not receive ACK from client\n");
+        }else{
+            isACKReceived=1;
+        }
+    }
+    /* if ACK was not received */
+    if(isACKReceived==0)
+        return -1;
+    /* if ACK was received, SUCCESS*/
+    free(recv_header);
+    socket->state=ESTABLISHED;
+    printf("\n3-way handshake achieved!\nConnection established!\n\n");
+
+    socket->seq_number=1;
+    socket->ack_number=1;
+    return 0;
+
 }
 
 int
@@ -217,316 +217,316 @@ int
 microtcp_shutdown (microtcp_sock_t *socket, int how)
 {
 
- //*** client sends FIN pocket ***//
- //*** server receivs FIN - sends ACK - state = CLOSING_BY_PEER ***//
- //*** client receivs ACK - state = CLOSING_BY_HOST ***//
- //*** server sends FIN pocket ***//
- //*** client receivs FIN pocket - sends ACK pocket - state = CLOSED ***//
- //*** server receivs ACK pocket - state = CLOSED ***//
+    //*** client sends FIN pocket ***//
+    //*** server receivs FIN - sends ACK - state = CLOSING_BY_PEER ***//
+    //*** client receivs ACK - state = CLOSING_BY_HOST ***//
+    //*** server sends FIN pocket ***//
+    //*** client receivs FIN pocket - sends ACK pocket - state = CLOSED ***//
+    //*** server receivs ACK pocket - state = CLOSED ***//
 
-struct sockaddr *address;
-socklen_t address_len;
+    struct sockaddr *address;
+    socklen_t address_len;
 
-ssize_t tmp_recvfrom;
-//uint8_t buffer[MICROTCP_RECVBUF_LEN];
-microtcp_header_t *recv_head_pack=(microtcp_header_t *)malloc(sizeof(microtcp_header_t));
-microtcp_header_t send_head_pack;
-int i;	
-		
-		srand(time(NULL));
-		/* Client sends FIN,ACK to server */
-		send_head_pack=initialize(rand()%999+1,socket->seq_number+1,ACK,0,0,FIN,socket->curr_win_size,0,0,0,0,0);
+    ssize_t tmp_recvfrom;
+    //uint8_t buffer[MICROTCP_RECVBUF_LEN];
+    microtcp_header_t *recv_head_pack=(microtcp_header_t *)malloc(sizeof(microtcp_header_t));
+    microtcp_header_t send_head_pack;
+    int i;	
 
-		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
-			socket->recvbuf[i]=0;
-		memcpy(socket->recvbuf,&send_head_pack,sizeof(send_head_pack));
-		if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
-			socket->state=INVALID;
-			perror("microTCP Shutdown connection error");
-			return -1;
-             	}
+    srand(time(NULL));
+    /* Client sends FIN,ACK to server */
+    send_head_pack=initialize(rand()%999+1,socket->seq_number+1,ACK,0,0,FIN,socket->curr_win_size,0,0,0,0,0);
 
-		/* Server receives Fin,ACK from client */
-                tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
-                if(tmp_recvfrom == -1){
-                        socket->state=INVALID;
-                        perror("microTCP shutdown connection fail (2nd packet recv)");
-                        return -1;
-                }
+    for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
+        socket->recvbuf[i]=0;
+    memcpy(socket->recvbuf,&send_head_pack,sizeof(send_head_pack));
+    if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
+        socket->state=INVALID;
+        perror("microTCP Shutdown connection error");
+        return -1;
+    }
 
-                if(ntohs(recv_head_pack->control)!=(ACK|FIN)){
-                        socket->state=INVALID;
-                        perror("microTCP shutdown connection error - 2nd packet is not ACK");
-                        return -1;
-                }
+    /* Server receives Fin,ACK from client */
+    tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
+    if(tmp_recvfrom == -1){
+        socket->state=INVALID;
+        perror("microTCP shutdown connection fail (2nd packet recv)");
+        return -1;
+    }
 
-
-		/* Client receives ACK from server */
-		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
-		if(tmp_recvfrom == -1){
-
-			perror("microTCP shutdown connection fail");
-		}
+    if(ntohs(recv_head_pack->control)!=(ACK|FIN)){
+        socket->state=INVALID;
+        perror("microTCP shutdown connection error - 2nd packet is not ACK");
+        return -1;
+    }
 
 
-		recv_head_pack->control=htons(recv_head_pack->control);
-		if(recv_head_pack->control!=htons(1*ACK+0*SYN+0*FIN)){
-			socket->state=INVALID;
-			perror("microTCP shutdown connection error");
-			return -1;
-		}
+    /* Client receives ACK from server */
+    tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
+    if(tmp_recvfrom == -1){
 
-		if(htonl(recv_head_pack->seq_number)!=htonl(send_head_pack.ack_number) || htonl(recv_head_pack->ack_number)!=htonl(send_head_pack.seq_number)+1){
-			socket->state=INVALID;
-			perror("microTCP shutdown connection error");
-			return -1;
-		}
-        	socket->state=CLOSING_BY_HOST;
-        	
-		/* Client receives FIN,ACK from server */
-		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
-		if(tmp_recvfrom == -1){
+        perror("microTCP shutdown connection fail");
+    }
 
-			perror("microTCP shutdown connection fail");
-		}
 
-		recv_head_pack->control=ntohs(recv_head_pack->control);
-		if(recv_head_pack->control!=htons(1*ACK+0*SYN+1*FIN)){
-			socket->state=INVALID;
-			perror("microTCP shutdown connection error");
-			return -1;
-		}
-        	
-		/* Client sends ACK to server */
-		send_head_pack.seq_number=htonl(socket->seq_number+1);
-        	send_head_pack.ack_number=htonl(recv_head_pack->ack_number+1);
-        	send_head_pack.control=htons(1*ACK+0*SYN+0*FIN);
-		send_head_pack.window=htons(socket->curr_win_size);
-		send_head_pack.data_len=0;
-		send_head_pack.future_use0=0;
-		send_head_pack.future_use1=0;
-		send_head_pack.future_use2=0;
-		send_head_pack.checksum=0;
+    recv_head_pack->control=htons(recv_head_pack->control);
+    if(recv_head_pack->control!=htons(1*ACK+0*SYN+0*FIN)){
+        socket->state=INVALID;
+        perror("microTCP shutdown connection error");
+        return -1;
+    }
 
-		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
-                        socket->recvbuf[i]=0;
-                memcpy(socket->recvbuf,&send_head_pack,sizeof(send_head_pack));
-                if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
-                        socket->state=INVALID;
-                        perror("microTCP Shutdown connection error");
-                        return -1;
-                }
-	
-		/* Closing client */
-		
-		free(socket->recvbuf);
-		close(socket->sd);
-    	
+    if(htonl(recv_head_pack->seq_number)!=htonl(send_head_pack.ack_number) || htonl(recv_head_pack->ack_number)!=htonl(send_head_pack.seq_number)+1){
+        socket->state=INVALID;
+        perror("microTCP shutdown connection error");
+        return -1;
+    }
+    socket->state=CLOSING_BY_HOST;
 
-		/* Server receives Fin,ACK from client */
-		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
-		if(tmp_recvfrom == -1){
-			socket->state=INVALID;
-			perror("microTCP shutdown connection fail (2nd packet recv)");
-			return -1;
-		}
+    /* Client receives FIN,ACK from server */
+    tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
+    if(tmp_recvfrom == -1){
 
-		recv_head_pack->control=htons(recv_head_pack->control);
-		if(recv_head_pack->control!=htons(1*ACK+0*SYN+1*FIN)){
-			socket->state=INVALID;
-			perror("microTCP shutdown connection error - 2nd packet is not ACK");
-			return -1;
-		}
-		
-		/* Server sends ACK to client */
-		send_head_pack.seq_number=0;
-                send_head_pack.ack_number=htonl(recv_head_pack->ack_number+1);
-                send_head_pack.control=htons(1*ACK+0*SYN+0*FIN);
-                send_head_pack.window=htons(socket->curr_win_size);
-                send_head_pack.data_len=0;
-                send_head_pack.future_use0=0;
-                send_head_pack.future_use1=0;
-                send_head_pack.future_use2=0;
-                send_head_pack.checksum=0;
+        perror("microTCP shutdown connection fail");
+    }
 
-		for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
-                        socket->recvbuf[i]=0;
-                memcpy(socket->recvbuf,&send_head_pack,sizeof(send_head_pack));
-                if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
-                        socket->state=INVALID;
-                        perror("microTCP Shutdown connection error");
-                        return -1;
-                }
-		
-		socket->state = CLOSING_BY_PEER;
+    recv_head_pack->control=ntohs(recv_head_pack->control);
+    if(recv_head_pack->control!=htons(1*ACK+0*SYN+1*FIN)){
+        socket->state=INVALID;
+        perror("microTCP shutdown connection error");
+        return -1;
+    }
 
-		/* Server sends FIN,ACK to client */
-		send_head_pack.seq_number=0;
-                send_head_pack.ack_number=htonl(recv_head_pack->ack_number+1);
-                send_head_pack.control=htons(1*ACK+0*SYN+1*FIN);
-                send_head_pack.window=htons(socket->curr_win_size);
-                send_head_pack.data_len=0;
-                send_head_pack.future_use0=0;
-                send_head_pack.future_use1=0;
-                send_head_pack.future_use2=0;
-                send_head_pack.checksum=0;
+    /* Client sends ACK to server */
+    send_head_pack.seq_number=htonl(socket->seq_number+1);
+    send_head_pack.ack_number=htonl(recv_head_pack->ack_number+1);
+    send_head_pack.control=htons(1*ACK+0*SYN+0*FIN);
+    send_head_pack.window=htons(socket->curr_win_size);
+    send_head_pack.data_len=0;
+    send_head_pack.future_use0=0;
+    send_head_pack.future_use1=0;
+    send_head_pack.future_use2=0;
+    send_head_pack.checksum=0;
 
-                for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
-                        socket->recvbuf[i]=0;
-                memcpy(socket->recvbuf,&send_head_pack,sizeof(send_head_pack));
-                if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
-                        socket->state=INVALID;
-                        perror("microTCP Shutdown connection error");
-                        return -1;
-                }
+    for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
+        socket->recvbuf[i]=0;
+    memcpy(socket->recvbuf,&send_head_pack,sizeof(send_head_pack));
+    if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
+        socket->state=INVALID;
+        perror("microTCP Shutdown connection error");
+        return -1;
+    }
 
-		/* Server receives ACK from client */
-		tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
-		if(tmp_recvfrom == -1){
-			socket->state=INVALID;
-			perror("microTCP shutdown connection fail (3rd packet recv)");
-			return -1;
-		}
+    /* Closing client */
 
-		recv_head_pack->control=htons(recv_head_pack->control);
-		if(recv_head_pack->control!=htons(1*ACK + 0*SYN + 0*FIN)){
-			socket->state=INVALID;
-			perror("microTCP shutdown connection error - 3rd packet is not FIN ACK");
-			return -1;
-		}
+    free(socket->recvbuf);
+    close(socket->sd);
 
-		/* Server closing */
-		free(socket->recvbuf);
-		close(socket->sd);
- 	socket->state = CLOSED;
 
-	return 1;
+    /* Server receives Fin,ACK from client */
+    tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
+    if(tmp_recvfrom == -1){
+        socket->state=INVALID;
+        perror("microTCP shutdown connection fail (2nd packet recv)");
+        return -1;
+    }
+
+    recv_head_pack->control=htons(recv_head_pack->control);
+    if(recv_head_pack->control!=htons(1*ACK+0*SYN+1*FIN)){
+        socket->state=INVALID;
+        perror("microTCP shutdown connection error - 2nd packet is not ACK");
+        return -1;
+    }
+
+    /* Server sends ACK to client */
+    send_head_pack.seq_number=0;
+    send_head_pack.ack_number=htonl(recv_head_pack->ack_number+1);
+    send_head_pack.control=htons(1*ACK+0*SYN+0*FIN);
+    send_head_pack.window=htons(socket->curr_win_size);
+    send_head_pack.data_len=0;
+    send_head_pack.future_use0=0;
+    send_head_pack.future_use1=0;
+    send_head_pack.future_use2=0;
+    send_head_pack.checksum=0;
+
+    for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
+        socket->recvbuf[i]=0;
+    memcpy(socket->recvbuf,&send_head_pack,sizeof(send_head_pack));
+    if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
+        socket->state=INVALID;
+        perror("microTCP Shutdown connection error");
+        return -1;
+    }
+
+    socket->state = CLOSING_BY_PEER;
+
+    /* Server sends FIN,ACK to client */
+    send_head_pack.seq_number=0;
+    send_head_pack.ack_number=htonl(recv_head_pack->ack_number+1);
+    send_head_pack.control=htons(1*ACK+0*SYN+1*FIN);
+    send_head_pack.window=htons(socket->curr_win_size);
+    send_head_pack.data_len=0;
+    send_head_pack.future_use0=0;
+    send_head_pack.future_use1=0;
+    send_head_pack.future_use2=0;
+    send_head_pack.checksum=0;
+
+    for(i=0;i<MICROTCP_RECVBUF_LEN;i++)
+        socket->recvbuf[i]=0;
+    memcpy(socket->recvbuf,&send_head_pack,sizeof(send_head_pack));
+    if(sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,address,address_len)<0){
+        socket->state=INVALID;
+        perror("microTCP Shutdown connection error");
+        return -1;
+    }
+
+    /* Server receives ACK from client */
+    tmp_recvfrom=recvfrom(socket->sd,recv_head_pack,sizeof(microtcp_header_t),0,address,&address_len);
+    if(tmp_recvfrom == -1){
+        socket->state=INVALID;
+        perror("microTCP shutdown connection fail (3rd packet recv)");
+        return -1;
+    }
+
+    recv_head_pack->control=htons(recv_head_pack->control);
+    if(recv_head_pack->control!=htons(1*ACK + 0*SYN + 0*FIN)){
+        socket->state=INVALID;
+        perror("microTCP shutdown connection error - 3rd packet is not FIN ACK");
+        return -1;
+    }
+
+    /* Server closing */
+    free(socket->recvbuf);
+    close(socket->sd);
+    socket->state = CLOSED;
+
+    return 1;
 
 
 
 }
 
-ssize_t
+    ssize_t
 microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int flags)
 {
-	ssize_t bytes_send,bytes_received;
+    ssize_t bytes_send,bytes_received;
     struct sockaddr_in sin;
-	socklen_t len=sizeof(struct sockaddr);
+    socklen_t len=sizeof(struct sockaddr);
     microtcp_header_t head;
-	uint8_t* newbuf,*newbuf2;	
-	int checksum;
+    uint8_t* newbuf,*newbuf2;	
+    int checksum;
 
-	/* setting the address*/
-	memset(&sin,0,sizeof(struct sockaddr_in));
-    	memcpy(&head,buffer,sizeof(microtcp_header_t));
-            sin.sin_family=ntohs(head.future_use0);
-            sin.sin_port=ntohs(head.future_use1);
-            sin.sin_addr.s_addr=ntohl(head.future_use2);
+    /* setting the address*/
+    memset(&sin,0,sizeof(struct sockaddr_in));
+    memcpy(&head,buffer,sizeof(microtcp_header_t));
+    sin.sin_family=ntohs(head.future_use0);
+    sin.sin_port=ntohs(head.future_use1);
+    sin.sin_addr.s_addr=ntohl(head.future_use2);
 
-	/*copying the data segment to newbuf */
-	newbuf2=(uint8_t*)buffer;
-	newbuf=(uint8_t*)malloc(length-sizeof(microtcp_header_t));
-	memcpy(newbuf,&(newbuf2)[sizeof(microtcp_header_t)],length-sizeof(microtcp_header_t));
-	
-	/*calculation of checksum */
-	if(length!=sizeof(microtcp_header_t)){
-		checksum=crc32(newbuf,length);              //calculate checksum
-        	printf("checksum of sender: %d\n",checksum);
-		head.checksum=htonl(checksum);
-	}
-	
+    /*copying the data segment to newbuf */
+    newbuf2=(uint8_t*)buffer;
+    newbuf=(uint8_t*)malloc(length-sizeof(microtcp_header_t));
+    memcpy(newbuf,&(newbuf2)[sizeof(microtcp_header_t)],length-sizeof(microtcp_header_t));
 
-	/* copying both the header and data segment to newbuf2 to send */
-	newbuf2=(uint8_t*)malloc(length);
-	memcpy(newbuf2,&head,sizeof(microtcp_header_t));
-	memcpy(&(newbuf)[sizeof(microtcp_header_t)],newbuf,length-sizeof(microtcp_header_t));	
-
-	if(ntohs(head.control)==(FIN|ACK)){
-		printf("Sending FIN ACK\n");
-	}
-
-	bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
-	
-
-	if(bytes_send==-1){
-		perror("Error sending the data");
-		return -1;
-	}
-	printf("\nSending data...\n");
-
-	/* receiving ACK if the data are sent correctly */
-        bytes_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)&sin,&len);
-        memcpy(&head,socket->recvbuf,sizeof(microtcp_header_t));
-        if(bytes_received==sizeof(microtcp_header_t)&&(ntohs(head.control)==ACK)){
-            printf("ACK received succesfully!\n");
-        }else{
-		
-            printf("Error receiving ACK from server!\n");
-        }
-
-	return bytes_send;
+    /*calculation of checksum */
+    if(length!=sizeof(microtcp_header_t)){
+        checksum=crc32(newbuf,length);              //calculate checksum
+        printf("checksum of sender: %d\n",checksum);
+        head.checksum=htonl(checksum);
+    }
 
 
-			
+    /* copying both the header and data segment to newbuf2 to send */
+    newbuf2=(uint8_t*)malloc(length);
+    memcpy(newbuf2,&head,sizeof(microtcp_header_t));
+    memcpy(&(newbuf)[sizeof(microtcp_header_t)],newbuf,length-sizeof(microtcp_header_t));	
+
+    if(ntohs(head.control)==(FIN|ACK)){
+        printf("Sending FIN ACK\n");
+    }
+
+    bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
+
+
+    if(bytes_send==-1){
+        perror("Error sending the data");
+        return -1;
+    }
+    printf("\nSending data...\n");
+
+    /* receiving ACK if the data are sent correctly */
+    bytes_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)&sin,&len);
+    memcpy(&head,socket->recvbuf,sizeof(microtcp_header_t));
+    if(bytes_received==sizeof(microtcp_header_t)&&(ntohs(head.control)==ACK)){
+        printf("ACK received succesfully!\n");
+    }else{
+
+        printf("Error receiving ACK from server!\n");
+    }
+
+    return bytes_send;
+
+
+
 }
 
-ssize_t
+    ssize_t
 microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 {
-	ssize_t bytes_received,bytes_sent;
-	struct sockaddr_in sin;
-	socklen_t len=sizeof(struct sockaddr);
-	microtcp_header_t *header;
-	uint8_t* newbuf,*newbuf2;
-	int checksum;
+    ssize_t bytes_received,bytes_sent;
+    struct sockaddr_in sin;
+    socklen_t len=sizeof(struct sockaddr);
+    microtcp_header_t *header;
+    uint8_t* newbuf,*newbuf2;
+    int checksum;
 
-	printf("\nWaiting to receive data\n");
+    printf("\nWaiting to receive data\n");
 
-	struct timeval timeout;
-	timeout.tv_sec = 0;
-	timeout.tv_usec = MICROTCP_ACK_TIMEOUT_US;
-	if (setsockopt(socket->sd , SOL_SOCKET ,SO_RCVTIMEO , &timeout ,sizeof(struct timeval)) < 0) {
-		perror("setsockopt");
-	}
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = MICROTCP_ACK_TIMEOUT_US;
+    if (setsockopt(socket->sd , SOL_SOCKET ,SO_RCVTIMEO , &timeout ,sizeof(struct timeval)) < 0) {
+        perror("setsockopt");
+    }
 
-	/* sending */	
-	bytes_received=recvfrom(socket->sd,buffer,length,flags,NULL,0/*(struct sockaddr*)&sin,&len*/);
-	if(bytes_received<=0){
-		perror("Error receiving the data");
-		return -1;
-	}
-	
-    	newbuf=(uint8_t*)buffer;
-    	header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
-	memcpy(header,newbuf,sizeof(microtcp_header_t));
+    /* sending */	
+    bytes_received=recvfrom(socket->sd,buffer,length,flags,NULL,0/*(struct sockaddr*)&sin,&len*/);
+    if(bytes_received<=0){
+        perror("Error receiving the data");
+        return -1;
+    }
 
-	if(htons(header->control)!=ACK){
-		//actions: fast retransmit
-	}
-	
-	if(bytes_received!=sizeof(microtcp_header_t)){		/* if data were sent */
-		/* Copying the data segment to newbuf2 */
-		newbuf2=(char*)malloc(bytes_received-sizeof(microtcp_header_t));
-        	memcpy(newbuf2,&(newbuf)[sizeof(microtcp_header_t)],bytes_received-sizeof(microtcp_header_t));
-		/* Calculating checksum */
-		checksum=crc32(newbuf2,bytes_received-sizeof(microtcp_header_t));
-		if(ntohl(header->checksum)!=checksum){
-	                printf("Unsuccesful deliver of data: header:%d checked:%d\n",header->checksum,checksum);
-				return -1;
-	        }else{
-	                printf("Data delivered succesfully: Writing on file...\n");
-			buffer=newbuf2;
-			return bytes_received;
-		}
-	}else{
-		/* If no data sent, check for FIN ACK */
-		if(htons(header->control)==(FIN|ACK)){
-			socket->state=CLOSING_BY_PEER;
-			return -1;
-		}
-	}
+    newbuf=(uint8_t*)buffer;
+    header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
+    memcpy(header,newbuf,sizeof(microtcp_header_t));
 
-	return bytes_received;
+    if(htons(header->control)!=ACK){
+        //actions: fast retransmit
+    }
+
+    if(bytes_received!=sizeof(microtcp_header_t)){		/* if data were sent */
+        /* Copying the data segment to newbuf2 */
+        newbuf2=(char*)malloc(bytes_received-sizeof(microtcp_header_t));
+        memcpy(newbuf2,&(newbuf)[sizeof(microtcp_header_t)],bytes_received-sizeof(microtcp_header_t));
+        /* Calculating checksum */
+        checksum=crc32(newbuf2,bytes_received-sizeof(microtcp_header_t));
+        if(ntohl(header->checksum)!=checksum){
+            printf("Unsuccesful deliver of data: header:%d checked:%d\n",header->checksum,checksum);
+            return -1;
+        }else{
+            printf("Data delivered succesfully: Writing on file...\n");
+            buffer=newbuf2;
+            return bytes_received;
+        }
+    }else{
+        /* If no data sent, check for FIN ACK */
+        if(htons(header->control)==(FIN|ACK)){
+            socket->state=CLOSING_BY_PEER;
+            return -1;
+        }
+    }
+
+    return bytes_received;
 
 }
 
@@ -534,17 +534,17 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 /* Our own Function(s) */
 
 microtcp_header_t initialize(int seq,int ack,int Ack,int Rst,int Syn,int Fin,uint16_t window,uint32_t data_len,uint32_t future_use0,uint32_t future_use1, uint32_t future_use2,uint32_t checksum ){
-	microtcp_header_t sock;
+    microtcp_header_t sock;
 
-	sock.seq_number=htonl(seq);
-	sock.ack_number=htonl(ack);
-	sock.control=htons(Ack|Rst|Syn|Fin);
-	sock.window=htons(window);
-	sock.data_len=htonl(data_len);
-	sock.future_use0=htons(future_use0);
-	sock.future_use1=htons(future_use1);
-	sock.future_use2=(int)htonl(future_use2);
-	sock.checksum=htonl(checksum);
+    sock.seq_number=htonl(seq);
+    sock.ack_number=htonl(ack);
+    sock.control=htons(Ack|Rst|Syn|Fin);
+    sock.window=htons(window);
+    sock.data_len=htonl(data_len);
+    sock.future_use0=htons(future_use0);
+    sock.future_use1=htons(future_use1);
+    sock.future_use2=(int)htonl(future_use2);
+    sock.checksum=htonl(checksum);
 
-	return sock;
+    return sock;
 }
