@@ -208,6 +208,8 @@ server_microtcp (uint16_t listen_port, const char *file)
 
     flag=0;
     while (flag==0) {
+	header=initialize(0,0,0,0,0,0,0,0,sin.sin_family, sin.sin_port, sin.sin_addr.s_addr,0);
+	memcpy(server.recvbuf,&header,sizeof(microtcp_header_t));
         received = microtcp_recv(&server, server.recvbuf, CHUNK_SIZE + sizeof(microtcp_header_t), 0);
 	if(received!=-1){	
        		written = fwrite (server.recvbuf, sizeof(uint8_t), received, fp);
