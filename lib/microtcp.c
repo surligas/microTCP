@@ -473,6 +473,7 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
             }else{
                 printf("Packet received with correct order\n");
                 socket->seq_number=ntohl(head.ack_number);
+		printf("size_of_data%d\n",size_of_data);
                 socket->ack_number=ntohl(head.seq_number)+size_of_data;
                 printf("seq of client: %d, ack of client: %d\n",socket->seq_number,socket->ack_number);
             }
