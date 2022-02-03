@@ -370,7 +370,7 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
 
 
         data_sent = microtcp_send (&client, client.recvbuf, sizeof(microtcp_header_t)+read_items * sizeof(uint8_t),0);
-        if ((data_sent-sizeof(microtcp_header_t)) != read_items * sizeof(uint8_t)) {
+        if (data_sent != read_items * sizeof(uint8_t)) {
             printf ("Failed to send the"
                     " amount of data read from the file.\n");
             //shutdown (sock, SHUT_RDWR);
