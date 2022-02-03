@@ -208,34 +208,27 @@ server_microtcp (uint16_t listen_port, const char *file)
 
     flag=0;
     while (flag==0) {
-	header=initialize(0,0,0,0,0,0,0,0,sin.sin_family, sin.sin_port, sin.sin_addr.s_addr,0);
-	memcpy(server.recvbuf,&header,sizeof(microtcp_header_t));
+        header=initialize(0,0,0,0,0,0,0,0,sin.sin_family, sin.sin_port, sin.sin_addr.s_addr,0);
+        memcpy(server.recvbuf,&header,sizeof(microtcp_header_t));
         received = microtcp_recv(&server, server.recvbuf, CHUNK_SIZE + sizeof(microtcp_header_t), 0);
-	if(received!=-1){	
-       		written = fwrite (server.recvbuf, sizeof(uint8_t), received, fp);
-	         total_bytes += received;
-                if (written != received) {
-                    printf ("Failed to write to the file the"
-                            " amount of data received from the network.\n");
-                    //shutdown (accepted, SHUT_RDWR);
-                    //shutdown (sock, SHUT_RDWR);
-                    close (server.sd);
-                    free (server.recvbuf);
-                    fclose (fp);
-                    return -EXIT_FAILURE;
-		}
-	}else{
-		printf("FIN ACK received!\n");
-		flag=1;
-	}
-        header=initialize(server.seq_number,server.ack_number,ACK,0,0,0,server.curr_win_size,sizeof(microtcp_header_t) + CHUNK_SIZE, 0,0,0,0);
-        memcpy(server.recvbuf,&header,sizeof(microtcp_header_t)); 
-        sent=sendto(server.sd,server.recvbuf,sizeof(microtcp_header_t),0,&client_addr,client_addr_len);
-        if(sent==sizeof(microtcp_header_t)&&(ntohs(header.control)==ACK)){
-       	     printf("Sent ACK succesfully!\n\n");
-       	 }else{
-       	     printf("Error sending ACK to client!\n\n");
-       	 }
+        printf("RECEIVED BANDWIDTH :%d\n",received);
+        if(received!=-1){	
+            written = fwrite (server.recvbuf, sizeof(uint8_t), received, fp);
+            total_bytes += received;
+            if (written != received) {
+                printf ("Failed to write to the file the"
+                        " amount of data received from the network.\n");
+                //shutdown (accepted, SHUT_RDWR);
+                //shutdown (sock, SHUT_RDWR);
+                close (server.sd);
+                free (server.recvbuf);
+                fclose (fp);
+                return -EXIT_FAILURE;
+            }
+        }else{
+            printf("FIN ACK received!\n");
+            flag=1;
+        }
     }
     clock_gettime (CLOCK_MONOTONIC_RAW, &end_time);
     print_statistics (total_bytes, start_time, end_time);
