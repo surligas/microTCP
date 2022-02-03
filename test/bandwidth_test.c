@@ -211,7 +211,6 @@ server_microtcp (uint16_t listen_port, const char *file)
         header=initialize(0,0,0,0,0,0,0,0,sin.sin_family, sin.sin_port, sin.sin_addr.s_addr,0);
         memcpy(server.recvbuf,&header,sizeof(microtcp_header_t));
         received = microtcp_recv(&server, server.recvbuf, CHUNK_SIZE + sizeof(microtcp_header_t), 0);
-        printf("RECEIVED BANDWIDTH :%d\n",received);
         if(received!=-1){	
             written = fwrite (server.recvbuf, sizeof(uint8_t), received, fp);
             total_bytes += received;
@@ -226,7 +225,7 @@ server_microtcp (uint16_t listen_port, const char *file)
                 return -EXIT_FAILURE;
             }
         }else{
-            printf("FIN ACK received!\n");
+            printf("FIN ACK received!\n\n");
             flag=1;
         }
     }
@@ -392,7 +391,7 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
     //Making buffer
     memcpy(client.recvbuf,&header,sizeof(microtcp_header_t));
 
-    printf("Sending FIN ACK\n");
+    printf("Sending FIN ACK\n\n");
     data_sent=sendto(client.sd,client.recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)&sin,sizeof(struct sockaddr));
 
 }
