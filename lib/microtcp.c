@@ -425,10 +425,10 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
     sin.sin_family=ntohs(head.future_use0);
     sin.sin_port=ntohs(head.future_use1);
     sin.sin_addr.s_addr=ntohl(head.future_use2);
-
     /*copying the data segment to newbuf */
     newbuf2=(uint8_t*)buffer;
     newbuf=(uint8_t*)malloc(length-sizeof(microtcp_header_t));
+ printf("SEND GEIA\n");
     memcpy(newbuf,&(newbuf2)[sizeof(microtcp_header_t)],length-sizeof(microtcp_header_t));
 
     /*calculation of checksum */
@@ -436,17 +436,16 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
         checksum=crc32(newbuf,length-sizeof(microtcp_header_t));              //calculate checksum
         head.checksum=htonl(checksum);
     }
-
-
+    printf("SEND GEIA\n");
     /* copying both the header and data segment to newbuf2 to send */
     newbuf2=(uint8_t*)malloc(length);
     memcpy(newbuf2,&head,sizeof(microtcp_header_t));
     memcpy(&(newbuf2)[sizeof(microtcp_header_t)],newbuf,length-sizeof(microtcp_header_t));	
 
     size_of_data=length-sizeof(microtcp_header_t);
-    //NA DOUME AN STELNETAI SEQ 1 THN PRWTH FORA APO TIS PROIGOUMENES
+     printf("SEND GEIA\n");
     bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
-
+ printf("SEND GEIA\n");
 
     if(bytes_send==-1){
         perror("Error sending the data");
@@ -465,7 +464,7 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
     flag=0;
     do{
         bytes_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)&sin,&len);
-        size_of_data=bytes_received-sizeof(microtcp_header_t);
+        //size_of_data=bytes_received-sizeof(microtcp_header_t);
         memcpy(&head,socket->recvbuf,sizeof(microtcp_header_t));
         if((ntohs(head.control)==ACK)){//if ack was received succesfully   
             if((ntohl(head.seq_number)!=socket->ack_number)&&(ntohl(head.ack_number)!=socket->seq_number+size_of_data)){//check if socket's ack=header's seq, socket's seq=header's ack+data_len 
@@ -538,21 +537,22 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
     newbuf=(uint8_t*)buffer;
     header=(microtcp_header_t*)malloc(sizeof(microtcp_header_t));
     memcpy(header,newbuf,sizeof(microtcp_header_t));
+    printf("TO ACK NUM THA GINEI %d\n",ntohl(header->seq_number)+bytes_received-sizeof(microtcp_header_t));
     socket->ack_number=ntohl(header->seq_number)+(bytes_received -sizeof(microtcp_header_t));//ntohl(header->data_len);
     socket->seq_number=ntohl(header->ack_number);
     if(bytes_received!=sizeof(microtcp_header_t)){		/* if data were sent */
         /* Copying the data segment to newbuf2 */
         newbuf2=(uint8_t*)malloc(bytes_received-sizeof(microtcp_header_t));
-        memcpy(newbuf2,&(newbuf)[sizeof(microtcp_header_t)],bytes_received-sizeof(microtcp_header_t));
+        memcpy(newbuf2,&(newbuf)[sizeof(microtcp_header_t)],ntohl(header->data_len)/*bytes_received-sizeof(microtcp_header_t)*/);//allagh
         /* Calculating checksum */
-        checksum=crc32(newbuf2,bytes_received-sizeof(microtcp_header_t));
+        checksum=crc32(newbuf2,ntohl(header->data_len));
         if(ntohl(header->checksum)!=checksum){
             printf("Unsuccesful deliver of data: header:%ld checked:%ld\n",ntohl(header->checksum),checksum);
             socket->ack_number=acknum;
             return -1;
         }else{
             printf("Data delivered succesfully: Writing on file...\n");
-            memcpy(buffer,newbuf2,bytes_received-sizeof(microtcp_header_t));
+            memcpy(buffer,newbuf2,ntohl(header->data_len));
             // return bytes_received-sizeof(microtcp_header_t);
         }
     }else{
