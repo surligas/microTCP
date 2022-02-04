@@ -482,21 +482,22 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
 		socket->seq_number=ntohl(head.ack_number);
                 socket->ack_number=ntohl(head.seq_number);
                 printf("Packet received with correct order! Seq : %zu,  Ack : %zu\n",socket->seq_number,socket->ack_number);
-            }
-            if(socket->seq_number==last_seq_num){ /* If we received a duplicate ACK */
-                times++;
-                if(times==3){
-                    printf("Triple duplicate ACK received, retransmitting...\n");
-                    //sendto
-                    times=0;
-                    //fast retransmit (whats the difference between this and normal retransmit)
-                }
-            }else{	/* If the ACK was not duplicate */
-            	printf("ACK received succesfully!\n");
-            	last_seq_num=socket->seq_number;
-            	times=0;
-            	flag=1;		/* flag=1 to end the repetition */
-		}
+	            if(socket->seq_number==last_seq_num){ /* If we received a duplicate ACK */
+			bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
+	                times++;
+	                if(times==3){
+	                    printf("Triple duplicate ACK received, retransmitting...\n");
+	                    //sendto
+	                    times=0;
+	                    //fast retransmit (whats the difference between this and normal retransmit)
+	                }
+	            }else{	/* If the ACK was not duplicate */
+	            	printf("ACK received succesfully!\n");
+	            	last_seq_num=socket->seq_number;
+	            	times=0;
+	            	flag=1;		/* flag=1 to end the repetition */
+		    }
+	    }
         }else{
             if(bytes_received==-1){ /* In case of timeout */
                 printf("Error receiving ACK because of timeout, retransmitting the packet...\n");
