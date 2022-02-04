@@ -128,6 +128,7 @@ microtcp_connect (microtcp_sock_t *socket, const struct sockaddr *address,
     socket->state=ESTABLISHED;
     socket->seq_number=1;
     socket->ack_number=1;
+    socket->init_win_size=MICROTCP_WIN_SIZE;
     printf("\n3-way handshake achieved!\nConnection established! Seq : %zu  Ack : %zu\n\n",socket->seq_number,socket->ack_number);
 
     return socket->sd;
@@ -206,6 +207,7 @@ microtcp_accept (microtcp_sock_t *socket, struct sockaddr *address,
     socket->state=ESTABLISHED;
     socket->seq_number=1;
     socket->ack_number=1;
+    socket->init_win_size=MICROTCP_WIN_SIZE;
     printf("\n3-way handshake achieved!\nConnection established! Seq : %zu,  Ack : %zu\n\n",socket->seq_number,socket->ack_number);
 
     return 0;
