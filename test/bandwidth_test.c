@@ -231,6 +231,7 @@ server_microtcp (uint16_t listen_port, const char *file)
     }
     clock_gettime (CLOCK_MONOTONIC_RAW, &end_time);
     print_statistics (total_bytes, start_time, end_time);
+	printf("\n");
     fclose(fp);
     return 0;
 }
@@ -353,7 +354,8 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
         read_items = fread (buffer, sizeof(uint8_t), CHUNK_SIZE, fp);
         if (read_items < 1) {
             perror ("Failed read from file");
-            //shutdown (sock, SHUT_RDWR);
+		memcpy(client.recvbuf,&sin,sizeof(struct sockaddr_in));
+       		 microtcp_shutdown(&client,SHUT_RDWR);
             close (client.sd);
             free (buffer);
             fclose (fp);
@@ -372,7 +374,8 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
         if (data_sent != read_items) {
             printf ("Failed to send the"
                     " amount of data read from the file.\n");
-            //shutdown (sock, SHUT_RDWR);
+		memcpy(client.recvbuf,&sin,sizeof(struct sockaddr_in));
+        	microtcp_shutdown(&client,SHUT_RDWR);
             close (client.sd);
             free (buffer);
             fclose (fp);
@@ -383,17 +386,8 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
 
     printf ("\nData sent. Terminating...\n");
 
-
-	/* Sending FIN ACK to termiate connection */
-
-    //Initialising header
-    header=initialize(client.seq_number,client.ack_number,ACK,0,0,FIN,client.curr_win_size,0, sin.sin_family, sin.sin_port, sin.sin_addr.s_addr, checksum);
-    //Making buffer
-    memcpy(client.recvbuf,&header,sizeof(microtcp_header_t));
-
-    printf("Sending FIN ACK\n\n");
-    data_sent=sendto(client.sd,client.recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)&sin,sizeof(struct sockaddr));
-
+	memcpy(client.recvbuf,&sin,sizeof(struct sockaddr_in));	
+	microtcp_shutdown(&client,SHUT_RDWR);
 }
 
     int
