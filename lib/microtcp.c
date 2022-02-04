@@ -477,6 +477,7 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
         if((ntohs(head.control)==ACK)){	/* If ACK was received succesfully */  
             if((ntohl(head.seq_number)!=socket->ack_number)&&(ntohl(head.ack_number)!=socket->seq_number+size_of_data)){ 	/* If packet was not received in order */
                 //retransmission actions(?)
+		bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
             }else{	/* If packet was received in order */
 		socket->seq_number=ntohl(head.ack_number);
                 socket->ack_number=ntohl(head.seq_number);
