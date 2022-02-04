@@ -171,13 +171,10 @@ server_microtcp (uint16_t listen_port, const char *file)
     socklen_t client_addr_len;
     struct timespec start_time;
     struct timespec end_time;
-    int received,sent;
+    int received,sent,shut;
     ssize_t written;
     ssize_t total_bytes=0;
     int flag;
-    //unsigned int check;
-
-    /*evala auta */
     char* tempbuf;
     microtcp_header_t header;
 
@@ -229,11 +226,22 @@ server_microtcp (uint16_t listen_port, const char *file)
             flag=1;
         }
     }
-    clock_gettime (CLOCK_MONOTONIC_RAW, &end_time);
-    print_statistics (total_bytes, start_time, end_time);
-	printf("\n");
-    fclose(fp);
-    return 0;
+
+	sleep(1);
+	memcpy(server.recvbuf,&sin,sizeof(struct sockaddr_in));
+        shut=microtcp_shutdown(&server,0);
+        if(shut==-1){
+                return -EXIT_FAILURE;
+        }
+        close(server.sd);
+	free(server.recvbuf);
+        fclose(fp);
+
+	clock_gettime (CLOCK_MONOTONIC_RAW, &end_time);
+    	print_statistics (total_bytes, start_time, end_time);
+        printf("\n");
+
+        return 0;
 }
 
     int
@@ -328,7 +336,7 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
     ssize_t data_sent,data_received;
     microtcp_header_t header;
     //`uint32_t checksum;
-    int checksum=0;
+    int checksum=0,shut;
     uint8_t* buffer;
 
     fp=fopen(file,"r");
@@ -387,7 +395,14 @@ int client_microtcp (const char *serverip, uint16_t server_port, const char *fil
     printf ("\nData sent. Terminating...\n");
 
 	memcpy(client.recvbuf,&sin,sizeof(struct sockaddr_in));	
-	microtcp_shutdown(&client,SHUT_RDWR);
+	shut=microtcp_shutdown(&client,SHUT_RDWR);
+	if(shut==-1){
+		return -EXIT_FAILURE;
+	}
+	close(client.sd);
+	free(buffer);
+	fclose(fp);
+	return 0;
 }
 
     int
