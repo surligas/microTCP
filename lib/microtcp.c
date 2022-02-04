@@ -476,18 +476,18 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
         memcpy(&head,socket->recvbuf,sizeof(microtcp_header_t));
         if((ntohs(head.control)==ACK)){	/* If ACK was received succesfully */  
             if((ntohl(head.seq_number)!=socket->ack_number)&&(ntohl(head.ack_number)!=socket->seq_number+size_of_data)){ 	/* If packet was not received in order */
-                //retransmission actions(?)
+                /* Retransmission */
 		bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
             }else{	/* If packet was received in order */
 		socket->seq_number=ntohl(head.ack_number);
                 socket->ack_number=ntohl(head.seq_number);
                 printf("Packet received with correct order! Seq : %zu,  Ack : %zu\n",socket->seq_number,socket->ack_number);
 	            if(socket->seq_number==last_seq_num){ /* If we received a duplicate ACK */
+			/* Retransmission */
 			bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
 	                times++;
 	                if(times==3){
 	                    printf("Triple duplicate ACK received, retransmitting...\n");
-	                    //sendto
 	                    times=0;
 	                    //fast retransmit (whats the difference between this and normal retransmit)
 	                }
