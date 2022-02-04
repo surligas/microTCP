@@ -219,23 +219,45 @@ microtcp_shutdown (microtcp_sock_t *socket, int how)
 	microtcp_header_t header;
 	struct sockaddr_in* sin;
 	socklen_t len=sizeof(struct sockaddr);
-	int data_sent;
+	int data_sent,data_received;
 
 	/* Extracting address from socket buffer */
 	sin=(struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 	memcpy(sin,socket->recvbuf,sizeof(struct sockaddr_in));
 
+	/* Sending FIN ACK */
 	header=initialize(socket->seq_number,socket->ack_number,ACK,0,0,FIN,socket->curr_win_size,0, sin->sin_family, sin->sin_port, sin->sin_addr.s_addr, 0);
 	memcpy(socket->recvbuf,&header,sizeof(microtcp_header_t));
 
-    	printf("Sending FIN ACK\n\n");
+	printf("Sending FIN ACK\n\n");
    	data_sent=sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)sin,len);
 	    /* Error checking */
 	if(data_sent==-1){
 		perror("Error sending FIN ACK");
         	return -1;
 	}
-	
+	if(how==SHUT_RDWR){	/* IF client called shutdown */
+		socket->state=CLOSING_BY_PEER;
+		/* Waiting to receive ACK from server */
+		data_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)sin,&len);
+		if(data_received==-1){
+			perror("Error receiving FIN ACK");
+			return -1;
+		}
+		printf("GEIA\n");
+		memcpy(&header,socket->recvbuf,sizeof(microtcp_header_t));
+		if(ntohs(header.control)!=ACK){
+			perror("Error receiving ACK");
+			return -1;
+		}else{
+			printf("Received ACK!\nClosing...\n\n");
+			socket->state=CLOSED;
+			return 0;
+		}
+	}else{
+		socket->state=CLOSING_BY_HOST;
+	}
+	return 0;
 }
 
     ssize_t
