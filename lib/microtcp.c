@@ -334,7 +334,7 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
     while(data_sent<length){
         bytes_to_send=min(socket->curr_win_size,remaining);
         chunks=bytes_to_send / (MICROTCP_MSS-sizeof(microtcp_header_t));
-        printf("CHUNKS %d, %d %d,MICRO %d \n",chunks,socket->curr_win_size,bytes_to_send,MICROTCP_MSS-sizeof(microtcp_header_t));
+        printf("CHUNKS %zu, %zu %zu,MICRO %lu \n",chunks,socket->curr_win_size,bytes_to_send,MICROTCP_MSS-sizeof(microtcp_header_t));
         for(i=0;i<=chunks;i++){
             printf("GEIA\n");
             /* Extracting the data segment to newbuf */
