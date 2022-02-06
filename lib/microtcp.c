@@ -308,7 +308,7 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
     int flag;
     uint32_t size_of_data;
     long int checksum;
-    int i=0;
+    int i=0,start=sizeof(microtcp_header_t);
 
     last_seq_num=socket->seq_number;
     /* Timeout function */
@@ -326,18 +326,18 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
     sin.sin_addr.s_addr=ntohl(head.future_use2);
 
     data_sent=0;
-    remaining=length;
     /* Sending */
     size_of_data=length-sizeof(microtcp_header_t);
-    while(data_sent<length){
+	remaining=size_of_data;
+    while(data_sent<size_of_data){
         bytes_to_send=min(socket->curr_win_size,remaining);
-        chunks=bytes_to_send / (MICROTCP_MSS-sizeof(microtcp_header_t));
+        chunks=bytes_to_send / MICROTCP_MSS;//-sizeof(microtcp_header_t));
         printf("CHUNKS %zu, %zu %zu,MICRO %lu \n",chunks,socket->curr_win_size,bytes_to_send,MICROTCP_MSS-sizeof(microtcp_header_t));
-        for(i=0;i<=chunks;i++){
+        for(i=0;i<chunks;i++){
             /* Extracting the data segment to newbuf */
             newbuf2=(uint8_t*)buffer;
             newbuf=(uint8_t*)malloc(length-sizeof(microtcp_header_t));
-            memcpy(newbuf,&(newbuf2)[sizeof(microtcp_header_t)],length-sizeof(microtcp_header_t));
+            memcpy(newbuf,&(newbuf2)[start],bytes_to_send);
 
             /* Calculating checksum if there is data in the buffer to send */
             if(length!=sizeof(microtcp_header_t)){
@@ -347,18 +347,44 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
             /* Copying both the header and data segment to newbuf2 to send */
             newbuf2=(uint8_t*)malloc(length);
             memcpy(newbuf2,&head,sizeof(microtcp_header_t));
-            memcpy(&(newbuf2)[sizeof(microtcp_header_t)],newbuf,length-sizeof(microtcp_header_t));	
+            memcpy(&(newbuf2)[sizeof(microtcp_header_t)],newbuf,bytes_to_send);	
 
-            bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
+            bytes_send=sendto(socket->sd,newbuf2,sizeof(microtcp_header_t) + MICROTCP_MSS,flags,(struct sockaddr*)&sin,len);
             /* Error checking */
             if(bytes_send==-1){
                 perror("Error sending the data");
                 return -1;
             }
             printf("\nSending data...\n");
+		start+=bytes_send;
+		printf("%d\n",start-sizeof(microtcp_header_t));
+		
         }
         /* Check if there is a semi-filled chunk*/
-        if(bytes_to_send % MICROTCP_MSS){
+        if((bytes_to_send % MICROTCP_MSS)!=0){
+		chunks++;
+		/* Extracting the data segment to newbuf */
+            newbuf2=(uint8_t*)buffer;
+            newbuf=(uint8_t*)malloc(length-sizeof(microtcp_header_t));
+            memcpy(newbuf,&(newbuf2)[start],bytes_to_send);
+
+            /* Calculating checksum if there is data in the buffer to send */
+            if(length!=sizeof(microtcp_header_t)){
+                checksum=crc32(newbuf,length-sizeof(microtcp_header_t));              //calculate check>                head.checksum=htonl(checksum);
+            }
+            /* Copying both the header and data segment to newbuf2 to send */
+            newbuf2=(uint8_t*)malloc(length);
+            memcpy(newbuf2,&head,sizeof(microtcp_header_t));
+            memcpy(&(newbuf2)[sizeof(microtcp_header_t)],newbuf,bytes_to_send);
+
+		bytes_send=sendto(socket->sd,newbuf2,sizeof(microtcp_header_t) + bytes_to_send % MICROTCP_MSS,flags,(struct sockaddr*)&sin,len);
+            if(bytes_send==-1){
+                perror("Error sending the data");
+                return -1;
+            }
+            printf("\nSending data...\n");
+                start+=bytes_send;
+                printf("%d\n",start-sizeof(microtcp_header_t));
 
         }
         /* Repeatedly check whether to retransmit or not */
@@ -366,9 +392,9 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
         do{
             /* Receive the ACK */
             for(i=0;i<=chunks;i++){
-                if (setsockopt(socket->sd , SOL_SOCKET ,SO_RCVTIMEO , &timeout ,sizeof(struct timeval)) < 0) {
+                /*if (setsockopt(socket->sd , SOL_SOCKET ,SO_RCVTIMEO , &timeout ,sizeof(struct timeval)) < 0) {
                     perror("setsockopt");
-                }
+                }*/
                 bytes_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)&sin,&len);
 
                 /* Extract the header */
