@@ -222,7 +222,7 @@ microtcp_shutdown (microtcp_sock_t *socket, int how)
 	microtcp_header_t header;
 	struct sockaddr_in* sin;
 	socklen_t len=sizeof(struct sockaddr);
-	int data_sent,data_received;
+	int data_sent,data_received,data_received2,i;
 
 	/* Extracting address from socket buffer */
 	sin=(struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
@@ -242,22 +242,53 @@ microtcp_shutdown (microtcp_sock_t *socket, int how)
 	if(how==SHUT_RDWR){	/* IF client called shutdown */
 		socket->state=CLOSING_BY_PEER;
 		/* Waiting to receive ACK from server */
-		data_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)&sin,&len);
+		data_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)sin,&len);
+		memcpy(&header,socket->recvbuf,sizeof(microtcp_header_t));
 		if(data_received==-1){
-			perror("Error receiving FIN ACK");
+			perror("Error receiving ACK");
 			return -1;
 		}
-		printf("GEIA\n");
-		memcpy(&header,socket->recvbuf,sizeof(microtcp_header_t));
 		if(ntohs(header.control)!=ACK){
 			perror("Error receiving ACK");
 			return -1;
 		}else{
-			printf("Received ACK!\nClosing...\n\n");
-			socket->state=CLOSED;
-			return 0;
+			printf("Received ACK!\n\n");
 		}
+		/* Waiting to receive FIN ACK from server */
+		data_received2=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)sin,&len);
+		memcpy(&header,socket->recvbuf,sizeof(microtcp_header_t));
+		if(data_received2==-1){
+                        perror("Error receiving FIN ACK");
+                        return -1;
+                }
+               	if(ntohs(header.control)!=(FIN|ACK)){
+               	        perror("Error receiving FIN ACK");
+               	        return -1;
+               	}else{
+	                 printf("Received FIN ACK!\n");
+			header=initialize(socket->seq_number,socket->ack_number,ACK,0,0,0,socket->curr_win_size,0, sin->sin_family, sin->sin_port, sin->sin_addr.s_addr, 0);
+	      		memcpy(socket->recvbuf,&header,sizeof(microtcp_header_t));
+		}
+        	printf("Sending ACK\n\n");
+        	data_sent=sendto(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)sin,len);
+		if(data_sent==-1){
+			perror("Error sending ACK");
+			return -1;
+		}
+                socket->state=CLOSED;
+                return 0;
 	}else{
+		data_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)sin,&len);
+                if(data_received==-1){
+                        perror("Error receiving ACK");
+                        return -1;
+                }
+                memcpy(&header,socket->recvbuf,sizeof(microtcp_header_t));
+		printf("%d\n",ntohl(header.control));
+                if(ntohs(header.control)!=ACK){
+                        perror("Error receiving ACK");
+                        return -1;
+                }
 		socket->state=CLOSING_BY_HOST;
 	}
 	return 0;
@@ -403,6 +434,7 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
     size_t acknum=socket->ack_number;
     long int checksum;
     ssize_t sent;
+	uint32_t fin=0;
 
     printf("\nWaiting to receive data\n");
 
@@ -462,14 +494,11 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 		/* Copying the data segment to the returning buffer */
             memcpy(buffer,newbuf2,ntohl(header->data_len));	
         }
-    }else{
-        /* If no data sent, check for FIN ACK */
-        if(htons(header->control)==(FIN|ACK)){
-            socket->state=CLOSING_BY_PEER;
-            return -1;
+    }
+	if(htons(header->control)==(FIN|ACK)){
+		fin=(FIN|ACK);
         }
-    }   
-
+	
     /* Initialising the header to send ACK if the receiving data were not corrupted */
     newbuf=(uint8_t*)malloc(sizeof(microtcp_header_t));
     *header=initialize(socket->seq_number,socket->ack_number,ACK,0,0,0,socket->curr_win_size-header->data_len,0,0,0,0,0);
@@ -483,6 +512,11 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
     }else{
         printf("Error sending ACK to client!\n\n");
     }
+
+	if(fin==(FIN|ACK)){
+            socket->state=CLOSING_BY_PEER;
+            return -1;
+        }
 
 	/* return the size of the data segment */
     return bytes_received-sizeof(microtcp_header_t);
