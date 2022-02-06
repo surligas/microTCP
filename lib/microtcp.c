@@ -244,7 +244,6 @@ microtcp_shutdown (microtcp_sock_t *socket, int how)
 		/* Waiting to receive ACK from server */
 		data_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)sin,&len);
 		memcpy(&header,socket->recvbuf,sizeof(microtcp_header_t));
-
 		if(data_received==-1){
 			perror("Error receiving ACK");
 			return -1;
@@ -446,6 +445,13 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
     sin.sin_family=ntohs(header->future_use0);
     sin.sin_port=ntohs(header->future_use1);
     sin.sin_addr.s_addr=ntohl(header->future_use2);
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = MICROTCP_ACK_TIMEOUT_US;
+    if (setsockopt(socket->sd , SOL_SOCKET ,SO_RCVTIMEO , &timeout ,sizeof(struct timeval)) < 0) {
+        perror("setsockopt");
+    }
+
 
 	/* receiving the data from the sender */
     bytes_received=recvfrom(socket->sd,buffer,length,flags,(struct sockaddr*)&sin,&len);
