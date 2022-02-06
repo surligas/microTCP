@@ -30,6 +30,7 @@
 /* our own functions*/
 microtcp_header_t initialize(int seq,int ack,int Ack,int Rst,int Syn,int Fin,uint16_t window,uint32_t data_len,uint32_t future_use0,uint32_t future_use1, uint32_t future_use2,uint32_t checksum );
 
+size_t min(size_t curr_win_size,size_t remaining);
     microtcp_sock_t
 microtcp_socket (int domain, int type, int protocol)
 {
@@ -299,6 +300,8 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
 {
     ssize_t bytes_send,bytes_received;
     struct sockaddr_in sin;
+    size_t chunks,remaining,data_sent,bytes_to_send;
+
     socklen_t len=sizeof(struct sockaddr);
     microtcp_header_t head;
     uint8_t* newbuf,*newbuf2;	
@@ -307,10 +310,16 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
     int flag;
     uint32_t size_of_data;
     long int checksum;
+    int i=0;
 
-
-	last_seq_num=socket->seq_number;
-
+    last_seq_num=socket->seq_number;
+    /* Timeout function */
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = MICROTCP_ACK_TIMEOUT_US;
+    if (setsockopt(socket->sd , SOL_SOCKET ,SO_RCVTIMEO , &timeout ,sizeof(struct timeval)) < 0) {
+        perror("setsockopt");
+    }
     /* Extracting address from buffer */
     memset(&sin,0,sizeof(struct sockaddr_in));
     memcpy(&head,buffer,sizeof(microtcp_header_t));
@@ -318,85 +327,96 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
     sin.sin_port=ntohs(head.future_use1);
     sin.sin_addr.s_addr=ntohl(head.future_use2);
 
-    /* Extracting the data segment to newbuf */
-    newbuf2=(uint8_t*)buffer;
-    newbuf=(uint8_t*)malloc(length-sizeof(microtcp_header_t));
-    memcpy(newbuf,&(newbuf2)[sizeof(microtcp_header_t)],length-sizeof(microtcp_header_t));
-
-    /* Calculating checksum if there is data in the buffer to send */
-    if(length!=sizeof(microtcp_header_t)){
-        checksum=crc32(newbuf,length-sizeof(microtcp_header_t));              //calculate checksum
-        head.checksum=htonl(checksum);
-    }
-    /* Copying both the header and data segment to newbuf2 to send */
-    newbuf2=(uint8_t*)malloc(length);
-    memcpy(newbuf2,&head,sizeof(microtcp_header_t));
-    memcpy(&(newbuf2)[sizeof(microtcp_header_t)],newbuf,length-sizeof(microtcp_header_t));	
-
-	/* Sending */
+    data_sent=0;
+    remaining=length;
+    /* Sending */
     size_of_data=length-sizeof(microtcp_header_t);
-    bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
+    while(data_sent<length){
+        bytes_to_send=min(socket->curr_win_size,remaining);
+        chunks=bytes_to_send / (MICROTCP_MSS-sizeof(microtcp_header_t));
+        printf("CHUNKS %d, %d %d,MICRO %d \n",chunks,socket->curr_win_size,bytes_to_send,MICROTCP_MSS-sizeof(microtcp_header_t));
+        for(i=0;i<=chunks;i++){
+            printf("GEIA\n");
+            /* Extracting the data segment to newbuf */
+            newbuf2=(uint8_t*)buffer;
+            newbuf=(uint8_t*)malloc(length-sizeof(microtcp_header_t));
+            memcpy(newbuf,&(newbuf2)[sizeof(microtcp_header_t)],length-sizeof(microtcp_header_t));
 
-	/* Error checking */
-    if(bytes_send==-1){
-        perror("Error sending the data");
-        return -1;
-    }
-    printf("\nSending data...\n");
-
-    /* receiving ACK if the data are sent correctly */
-
-	/* Timeout function */
-    struct timeval timeout;
-    timeout.tv_sec = 0;
-    timeout.tv_usec = MICROTCP_ACK_TIMEOUT_US;
-    if (setsockopt(socket->sd , SOL_SOCKET ,SO_RCVTIMEO , &timeout ,sizeof(struct timeval)) < 0) {
-        perror("setsockopt");
-    }
-
-	/* Repeatedly check whether to retransmit or not */
-    flag=0;
-    do{
-	/* Receive the ACK */
-        bytes_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)&sin,&len);
-	
-	/* Extract the header */
-        memcpy(&head,socket->recvbuf,sizeof(microtcp_header_t));
-        if((ntohs(head.control)==ACK)){	/* If ACK was received succesfully */  
-            if((ntohl(head.seq_number)!=socket->ack_number)&&(ntohl(head.ack_number)!=socket->seq_number+size_of_data)){ 	/* If packet was not received in order */
-                /* Retransmission */
-		bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
-            }else{	/* If packet was received in order */
-		socket->seq_number=ntohl(head.ack_number);
-                socket->ack_number=ntohl(head.seq_number);
-                printf("Packet received with correct order! Seq : %zu,  Ack : %zu\n",socket->seq_number,socket->ack_number);
-	            if(socket->seq_number==last_seq_num){ /* If we received a duplicate ACK */
-			/* Retransmission */
-			bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
-	                times++;
-	                if(times==3){
-	                    printf("Triple duplicate ACK received, retransmitting...\n");
-	                    times=0;
-	                    //fast retransmit (whats the difference between this and normal retransmit)
-	                }
-	            }else{	/* If the ACK was not duplicate */
-	            	printf("ACK received succesfully!\n");
-	            	last_seq_num=socket->seq_number;
-	            	times=0;
-	            	flag=1;		/* flag=1 to end the repetition */
-		    }
-	    }
-        }else{
-            if(bytes_received==-1){ /* In case of timeout */
-                printf("Error receiving ACK because of timeout, retransmitting the packet...\n");
-		/* retransmission */
-                bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
+            /* Calculating checksum if there is data in the buffer to send */
+            if(length!=sizeof(microtcp_header_t)){
+                checksum=crc32(newbuf,length-sizeof(microtcp_header_t));              //calculate checksum
+                head.checksum=htonl(checksum);
             }
-            printf("Error receiving ACK from server!\n");
-        }
-    }while(flag==0);
+            /* Copying both the header and data segment to newbuf2 to send */
+            newbuf2=(uint8_t*)malloc(length);
+            memcpy(newbuf2,&head,sizeof(microtcp_header_t));
+            memcpy(&(newbuf2)[sizeof(microtcp_header_t)],newbuf,length-sizeof(microtcp_header_t));	
 
-	/* Return the size of the data segment that was sent */
+            bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
+            /* Error checking */
+            if(bytes_send==-1){
+                perror("Error sending the data");
+                return -1;
+            }
+            printf("\nSending data...\n");
+        }
+        /* Check if there is a semi-filled chunk*/
+        if(bytes_to_send % MICROTCP_MSS){
+
+        }
+        /* Repeatedly check whether to retransmit or not */
+        flag=0;
+        do{
+            /* Receive the ACK */
+            for(i=0;i<=chunks;i++){
+                if (setsockopt(socket->sd , SOL_SOCKET ,SO_RCVTIMEO , &timeout ,sizeof(struct timeval)) < 0) {
+                    perror("setsockopt");
+                }
+                bytes_received=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)&sin,&len);
+
+                /* Extract the header */
+                memcpy(&head,socket->recvbuf,sizeof(microtcp_header_t));
+                if((ntohs(head.control)==ACK)){	/* If ACK was received succesfully */  
+                    socket->curr_win_size=ntohs(head.window);
+                    if((ntohl(head.seq_number)!=socket->ack_number)&&(ntohl(head.ack_number)!=socket->seq_number+size_of_data)){ 	/* If packet was not received in order */
+                        /* Retransmission */
+                        //the same as below with the retransmission and the window
+                        bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
+                    }else{	/* If packet was received in order */
+                        socket->seq_number=ntohl(head.ack_number);
+                        socket->ack_number=ntohl(head.seq_number);
+                        printf("Packet received with correct order! Seq : %zu,  Ack : %zu\n",socket->seq_number,socket->ack_number);
+                        if(socket->seq_number==last_seq_num){ /* If we received a duplicate ACK */
+                            /* Retransmission */
+                            //retransmission with the new window size in header (make a new header to send i guess)
+                            bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
+                            times++;
+                            if(times==3){
+                                printf("Triple duplicate ACK received, retransmitting...\n");
+                                times=0;
+                                //fast retransmit (whats the difference between this and normal retransmit)
+                            }
+                        }else{	/* If the ACK was not duplicate */
+                            printf("ACK received succesfully!\n");
+                            last_seq_num=socket->seq_number;
+                            times=0;
+                            flag=1;		/* flag=1 to end the repetition */
+                        }
+                    }
+                }else{
+                    if(bytes_received==-1){ /* In case of timeout */
+                        printf("Error receiving ACK because of timeout, retransmitting the packet...\n");
+                        /* retransmission */
+                        bytes_send=sendto(socket->sd,newbuf2,length,flags,(struct sockaddr*)&sin,len);
+                    }
+                    printf("Error receiving ACK from server!\n");
+                }
+            }
+        }while(flag==0);
+        remaining-=bytes_to_send;
+        data_sent+=bytes_to_send;
+        }
+    /* Return the size of the data segment that was sent */
     return bytes_send-sizeof(microtcp_header_t);
 
 
@@ -446,6 +466,10 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
     socket->ack_number=ntohl(header->seq_number)+(bytes_received -sizeof(microtcp_header_t));//ntohl(header->data_len);
     socket->seq_number=ntohl(header->ack_number);
 
+    
+    //calculating window size(header->win_size-header->data_len)
+    
+
     if(bytes_received!=sizeof(microtcp_header_t)){		/* if data were sent */
 
         /* Extracting the data segment from the buffer received */
@@ -471,7 +495,7 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 	
     /* Initialising the header to send ACK if the receiving data were not corrupted */
     newbuf=(uint8_t*)malloc(sizeof(microtcp_header_t));
-    *header=initialize(socket->seq_number,socket->ack_number,ACK,0,0,0,socket->curr_win_size,0,0,0,0,0);
+    *header=initialize(socket->seq_number,socket->ack_number,ACK,0,0,0,socket->curr_win_size-header->data_len,0,0,0,0,0);
 	/* Sending ACK back to the sender */
     memcpy(newbuf,header,sizeof(microtcp_header_t));
     sent=sendto(socket->sd,newbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)&sin,len);
@@ -494,6 +518,14 @@ microtcp_recv (microtcp_sock_t *socket, void *buffer, size_t length, int flags)
 
 
 /* Our own Function(s) */
+size_t min(size_t curr_win_size,size_t remaining){
+  size_t ret=curr_win_size;
+  if(ret<remaining)
+      return curr_win_size;
+  else
+      return remaining;
+}
+
 
 microtcp_header_t initialize(int seq,int ack,int Ack,int Rst,int Syn,int Fin,uint16_t window,uint32_t data_len,uint32_t future_use0,uint32_t future_use1, uint32_t future_use2,uint32_t checksum ){
     microtcp_header_t sock;
