@@ -257,12 +257,11 @@ microtcp_shutdown (microtcp_sock_t *socket, int how)
 		/* Waiting to receive FIN ACK from server */
 		data_received2=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)sin,&len);
 		memcpy(&header2,socket->recvbuf,sizeof(microtcp_header_t));
-		printf("\n%d\n",ntohs(header2.control));
 		if(data_received2==-1){
                         perror("Error receiving FIN ACK");
                         return -1;
                 }
-               	if(ntohs(header2.control)!=(FIN|ACK)){
+               	if(ntohs(header2.control)!=ACK){
                	        perror("Error receiving FIN ACK");
                	        return -1;
                	}else{
@@ -285,8 +284,7 @@ microtcp_shutdown (microtcp_sock_t *socket, int how)
                         return -1;
                 }
                 memcpy(&header,socket->recvbuf,sizeof(microtcp_header_t));
-		printf("%d\n",ntohs(header.control));
-                if(ntohs(header.control)!=ACK){
+                if(ntohs(header.control)!=(FIN|ACK)){
                         perror("Error receiving ACK");
                         return -1;
                 }
@@ -336,7 +334,6 @@ microtcp_send (microtcp_sock_t *socket, const void *buffer, size_t length,int fl
         chunks=bytes_to_send / (MICROTCP_MSS-sizeof(microtcp_header_t));
         printf("CHUNKS %zu, %zu %zu,MICRO %lu \n",chunks,socket->curr_win_size,bytes_to_send,MICROTCP_MSS-sizeof(microtcp_header_t));
         for(i=0;i<=chunks;i++){
-            printf("GEIA\n");
             /* Extracting the data segment to newbuf */
             newbuf2=(uint8_t*)buffer;
             newbuf=(uint8_t*)malloc(length-sizeof(microtcp_header_t));
