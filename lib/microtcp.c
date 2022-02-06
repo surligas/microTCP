@@ -219,7 +219,7 @@ int
 
 microtcp_shutdown (microtcp_sock_t *socket, int how)
 {
-	microtcp_header_t header;
+	microtcp_header_t header,header2;
 	struct sockaddr_in* sin;
 	socklen_t len=sizeof(struct sockaddr);
 	int data_sent,data_received,data_received2,i;
@@ -256,12 +256,13 @@ microtcp_shutdown (microtcp_sock_t *socket, int how)
 		}
 		/* Waiting to receive FIN ACK from server */
 		data_received2=recvfrom(socket->sd,socket->recvbuf,sizeof(microtcp_header_t),0,(struct sockaddr*)sin,&len);
-		memcpy(&header,socket->recvbuf,sizeof(microtcp_header_t));
+		memcpy(&header2,socket->recvbuf,sizeof(microtcp_header_t));
+		printf("\n%d\n",ntohs(header2.control));
 		if(data_received2==-1){
                         perror("Error receiving FIN ACK");
                         return -1;
                 }
-               	if(ntohs(header.control)!=(FIN|ACK)){
+               	if(ntohs(header2.control)!=(FIN|ACK)){
                	        perror("Error receiving FIN ACK");
                	        return -1;
                	}else{
@@ -284,7 +285,7 @@ microtcp_shutdown (microtcp_sock_t *socket, int how)
                         return -1;
                 }
                 memcpy(&header,socket->recvbuf,sizeof(microtcp_header_t));
-		printf("%d\n",ntohl(header.control));
+		printf("%d\n",ntohs(header.control));
                 if(ntohs(header.control)!=ACK){
                         perror("Error receiving ACK");
                         return -1;
